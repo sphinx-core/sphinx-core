@@ -20,6 +20,8 @@
 // SWIFFTX-related constants portion
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
+extern const BitSequence SALT_VALUE;
+extern const BitSequence HAIFA_IV_256;
 
 // The size of SWIFFTX input in bytes.
 #define SWIFFTX_INPUT_BLOCK_SIZE 256

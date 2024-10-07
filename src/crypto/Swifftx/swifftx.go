@@ -30,12 +30,11 @@ package swifftx
 #include <stdio.h>  // Include for sprintf
 #include "SHA3.h"
 
-// Function to hash input message using SWIFFTX
 void HashInput(const char *input, int length, char *output) {
     BitSequence resultingDigest[SWIFFTX_OUTPUT_BLOCK_SIZE] = {0};
     HashReturn exitCode;
 
-    exitCode = Hash(512, input, length * 8, resultingDigest);  // 512-bit output
+    exitCode = Hash(512, (const BitSequence *)input, length * 8, resultingDigest);  // 512-bit output
 
     if (exitCode == SUCCESS) {
         for (int i = 0; i < 64; i++) { // 64 bytes for 512 bits
