@@ -1,0 +1,22 @@
+SPHINX IMPLEMENTATION PROPOSAL (SIP-0002)
+
+AES256-GCM mode
+
+Confidentiality & Integrity (Authenticated Encryption)
+Reason: Blockchain data, especially smart contracts and transaction records, require not only confidentiality (encryption) but also integrity (verification that data has not been tampered with). GCM provides authenticated encryption, ensuring that both the confidentiality and the integrity of data are preserved.
+Benefit for Blockchain: This ensures that transactions and blocks of data cannot be altered without detection, a critical need for maintaining the trust and integrity of the decentralized system.
+2. High Performance (Parallelism)
+Reason: GCM mode, being based on CTR mode, allows for parallel processing of data blocks. This is particularly useful in blockchain systems, where high throughput and low latency are important for consensus algorithms, mining, and transaction validation.
+Benefit for Blockchain: Blockchain nodes can process data in parallel, allowing for faster transaction confirmation times and improved scalability, which is essential for handling large-scale decentralized systems.
+3. Resistance to Replay Attacks
+Reason: In GCM, the use of a unique initialization vector (IV) and a counter ensures that each encryption is distinct. This is important in blockchain, where identical data (e.g., transaction information) could potentially be repeated.
+Benefit for Blockchain: Prevents attackers from reusing old transaction data or replaying transaction packets to disrupt the system, ensuring better security.
+4. Low Communication Overhead
+Reason: AES-GCM provides encryption and authentication in a single pass, meaning that there's minimal additional overhead for verifying the integrity of data.
+Benefit for Blockchain: Blockchain platforms, especially public blockchains, involve distributed nodes that communicate over a network. The lower the communication and computational overhead, the better the performance in such decentralized environments.
+5. Secure in High Latency Networks
+Reason: AES-GCM is highly efficient and secure in environments where network latency can be high (such as in geographically distributed blockchain nodes).
+Benefit for Blockchain: Since blockchain nodes are often spread across the globe, they can experience network delays. AES-GCM handles such environments efficiently without compromising security or performance.
+
+
+For blockchain applications, AES-256-GCM is the optimal choice because it provides both confidentiality and data integrity in a highly efficient manner, allowing for fast, parallelizable encryption and ensuring the secure handling of transactions across a distributed network. Its resistance to replay attacks, authenticated encryption, and high performance make it the most suitable mode for the decentralized, trust-based nature of blockchain systems.
