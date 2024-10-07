@@ -43,6 +43,26 @@ type HashTreeNode struct {
 	Right *HashTreeNode `json:"right,omitempty"` // Right child node
 }
 
+// NewHashTree creates a new HashTree instance with the given leaves.
+func NewHashTree(leaves [][]byte) *HashTree {
+	return &HashTree{
+		Leaves: leaves,
+		Root:   nil,
+	}
+}
+
+// HashTree represents the Merkle hash tree.
+type HashTree struct {
+	Leaves [][]byte      // The leaves of the tree
+	Root   *HashTreeNode // The root node of the tree
+}
+
+// Build constructs the Merkle hash tree from the leaves.
+func (tree *HashTree) Build() error {
+	tree.Root = BuildHashTree(tree.Leaves)
+	return nil
+}
+
 // Compute the hash of a given data slice
 func computeHash(data []byte) []byte {
 	hash := sha256.Sum256(data) // Compute SHA-256 hash
