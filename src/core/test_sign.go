@@ -5,8 +5,8 @@ import (
 	"log"
 
 	"github.com/kasperdi/SPHINCSPLUS-golang/parameters"
-	"github.com/sphinx-core/sphinx-core/src/core/hashtree" // Updated import for hashtree
-	"github.com/sphinx-core/sphinx-core/src/core/sphincs"  // Updated import for sign
+	"github.com/sphinx-core/sphinx-core/src/core/hashtree"
+	"github.com/sphinx-core/sphinx-core/src/core/sphincs"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
