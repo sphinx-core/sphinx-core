@@ -16,6 +16,9 @@
 #include "stdbool.h"
 #include "stdint.h"
 
+// Define BitSequence at the top to avoid unknown type errors.
+typedef unsigned char BitSequence;
+
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // SWIFFTX-related constants portion
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -47,9 +50,6 @@ extern const BitSequence HAIFA_IV_256;
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // NIST API definitions
 ///////////////////////////////////////////////////////////////////////////////////////////////
-
-// The type of the input data as specified by NIST.
-typedef unsigned char BitSequence;
 
 // The data length type. Here we assume a typical modern machine with 64bit architecture.
 typedef uint64_t DataLength;
@@ -92,7 +92,7 @@ typedef struct hashState
 	BitSequence remaining[HAIFA_INPUT_BLOCK_SIZE + 1];
 
 	// The size of the remaining data in bits.
-	// Is 0 in case there is no remaning data at all.
+	// Is 0 in case there is no remaining data at all.
 	unsigned int remainingSize;
 
 	// The current output of the compression function. At the end will contain the final digest
@@ -105,8 +105,8 @@ typedef struct hashState
 	// The salt value currently in use:
 	BitSequence salt[HAIFA_SALT_SIZE];
 
-	// Indicates whether a single 'Update()' occured. 
-	// Ater a call to 'Update()' the key and the salt values cannot be changed.
+	// Indicates whether a single 'Update()' occurred. 
+	// After a call to 'Update()' the key and the salt values cannot be changed.
 	bool wasUpdated;
 } hashState;
 
@@ -121,7 +121,7 @@ typedef struct hashState
 // - Success value.
 HashReturn Init(hashState *state, int hashbitlen);
 
-// Update() processes data using the algorithm�s compression function.
+// Update() processes data using the algorithm’s compression function.
 // Whatever integral amount of data the Update() routine can process through the compression
 // function is handled. Any remaining data must be stored for future processing. 
 //
