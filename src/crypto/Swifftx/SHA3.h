@@ -20,8 +20,6 @@
 // SWIFFTX-related constants portion
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
-extern const unsigned char _SALT_VALUE[];
-extern const unsigned char _HAIFA_IV_256[];
 
 // The size of SWIFFTX input in bytes.
 #define SWIFFTX_INPUT_BLOCK_SIZE 256
