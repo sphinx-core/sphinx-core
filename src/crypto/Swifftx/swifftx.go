@@ -24,7 +24,7 @@ package swifftx
 
 /*
 #cgo CFLAGS: -I.
-#cgo LDFLAGS: -L/Users/kusuma/Desktop/sphinx-core/src/crypto/Swifftx -lSHA3
+#cgo LDFLAGS: -L. -lSHA3
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>  // Include for sprintf
