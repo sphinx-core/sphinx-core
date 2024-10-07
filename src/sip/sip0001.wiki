@@ -10,37 +10,52 @@ Stateless Digital Signatures
 Definition: Stateless digital signature schemes do not require the signer to maintain any internal state between the creation of multiple signatures. Each signature can be generated independently using the same signing key without the risk of compromising previous signatures.
 
 How Stateless Signatures Work:
+
 1. Key Generation: A private-public key pair is generated.
+
 2. Signing: To sign a message, the signer uses the private key along with a cryptographic algorithm to produce a signature.
 3. Verification: The verifier uses the public key to verify the signature against the message.
+
 4. The signer can use the same private key for multiple signatures without maintaining any record of previously signed messages. While stateless signatures are easy to implement and use, they may be vulnerable to future quantum attacks.
 
 Stateful Digital Signatures
+
 1. Definition: Stateful digital signature schemes require the signer to keep track of the state of the signing process. This means the signer must carefully manage which keys or elements have been used for signing to ensure security.
 Example: XMSS (eXtended Merkle Signature Scheme).
 
 How Stateful Signatures Work:
+
 1. Key Generation: A key pair is generated along with a state variable that tracks usage.
+
 2. Signing: Each signature updates the state, and the signer must ensure that no key or component is reused inappropriately.
+
 3. Verification: The verifier checks the signature against the message using the public key.
 
 Differences in Operation
+
 1. State Management:
-Stateless: No internal state needs to be maintained; the same key can be used repeatedly without additional bookkeeping.
-Stateful: The signer must track which keys or elements have been used. Failing to update the state can introduce vulnerabilities.
+
+- Stateless: No internal state needs to be maintained; the same key can be used repeatedly without additional bookkeeping.
+
+- Stateful: The signer must track which keys or elements have been used. Failing to update the state can introduce vulnerabilities.
 
 2. Security Model:
+
 - Stateless:
 SPHINCS+ is designed to be secure against quantum attacks, making it a unique and innovative solution in the digital signature landscape. It utilizes a combination of One-Time Signatures (OTS) and Hash-Based Signatures (HBS) to achieve its security. In SPHINCS+, OTS is employed for signing individual messages, ensuring that each signature is unique and independent. The use of HBS enhances the overall robustness of the scheme by allowing for a high degree of flexibility and adaptability while maintaining security against quantum threats. The stateless nature of SPHINCS+ means that it does not require the signer to keep track of any internal state, which simplifies implementation and reduces the risk of vulnerabilities associated with state management.
 
 - Stateful: In contrast, many stateful schemes, such as XMSS (eXtended Merkle Signature Scheme), also aim to provide post-quantum security but require careful management of state throughout the signing process. These schemes maintain an internal state variable that tracks which keys or elements have been used for signing, making them more complex and prone to vulnerabilities if the state is not managed properly. While these stateful schemes are designed to be secure against quantum attacks, they inherently require more diligence in their implementation and usage compared to stateless schemes like SPHINCS+.
 
 3. Key Reuse:
+
 - Stateless: The same key can be reused indefinitely without issue.
+
 - Stateful: Elements of the private key must not be reused; doing so can lead to signature forgery.
 
 4. Complexity:
+
 - Stateless: Simple to implement and manage due to the lack of state tracking.
+
 - Stateful: More complex because of the need for meticulous state management and key tracking.
 
 
