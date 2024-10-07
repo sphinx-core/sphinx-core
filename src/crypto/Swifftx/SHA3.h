@@ -12,7 +12,7 @@
 #ifndef __SHA_3__
 #define __SHA_3__
 
-// Include necessary headers
+// Remove these while using gcc:
 #include "stdbool.h"
 #include "stdint.h"
 
@@ -20,21 +20,16 @@
 // SWIFFTX-related constants portion
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
-typedef unsigned char BitSequence; // Define BitSequence
+typedef unsigned char BitSequence;
 
-// Define the data length type
-typedef uint64_t DataLength;
-
-// Ensure SALT_VALUE is defined consistently as DataLength
-const DataLength SALT_VALUE = 8; // or any other value that suits your context
-
-// Ensure HAIFA_IV_256 is defined correctly as an array
-const BitSequence HAIFA_IV_256[SWIFFTX_OUTPUT_BLOCK_SIZE] = { /* Initialize with values */ };
+extern const BitSequence SALT_VALUE;
+extern const BitSequence HAIFA_IV_256;
 
 // The size of SWIFFTX input in bytes.
 #define SWIFFTX_INPUT_BLOCK_SIZE 256
 
-// The size of output block in bytes.
+// The size of output block in bytes. The compression function of SWIFFT outputs a block of 
+// this size (i.e., this is the size of the resulting hash value).
 #define SWIFFTX_OUTPUT_BLOCK_SIZE 65
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -50,28 +45,6 @@ const BitSequence HAIFA_IV_256[SWIFFTX_OUTPUT_BLOCK_SIZE] = { /* Initialize with
 // The size of the input block in bytes that we use in HAIFA (|M_i| in HAIFA paper).
 #define HAIFA_INPUT_BLOCK_SIZE (SWIFFTX_INPUT_BLOCK_SIZE - SWIFFTX_OUTPUT_BLOCK_SIZE \
 							  - HAIFA_NUM_OF_BITS_SIZE - HAIFA_SALT_SIZE)
-
-// Function declarations
-HashReturn Init(hashState *state, int hashbitlen);
-HashReturn Update(hashState *state, const BitSequence *data, DataLength databitlen);
-HashReturn Final(hashState *state, BitSequence *hashval);
-HashReturn Hash(int hashbitlen, const BitSequence *data, DataLength databitlen, BitSequence *hashval);
-HashReturn SetSalt(hashState *state, BitSequence *salt, unsigned short saltLength);
-
-///////////////////////////////////////////////////////////////////////////////////////////////
-// hashState structure definition
-///////////////////////////////////////////////////////////////////////////////////////////////
-
-typedef struct hashState 
-{
-	unsigned short hashbitlen;
-	BitSequence remaining[HAIFA_INPUT_BLOCK_SIZE + 1];
-	unsigned int remainingSize;
-	BitSequence currOutputBlock[SWIFFTX_OUTPUT_BLOCK_SIZE];
-	BitSequence numOfBitsChar[HAIFA_NUM_OF_BITS_SIZE];
-	BitSequence salt[HAIFA_SALT_SIZE];
-	bool wasUpdated;
-} hashState;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // NIST API definitions
