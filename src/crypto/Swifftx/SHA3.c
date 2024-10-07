@@ -15,6 +15,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+
+const uint8_t SALT_VALUE[HAIFA_SALT_SIZE] = { /* initialize values */ };
+const uint8_t HAIFA_IV_256[32] = { /* initialize values */ };
+
 // The default salt value.
 // This is the expansion of e (Euler's number) - the 19 digits after 2.71:
 // 8281828459045235360.
