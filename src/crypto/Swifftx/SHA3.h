@@ -20,6 +20,8 @@
 // SWIFFTX-related constants portion
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
+typedef unsigned char BitSequence;
+
 extern const BitSequence SALT_VALUE;
 extern const BitSequence HAIFA_IV_256;
 
