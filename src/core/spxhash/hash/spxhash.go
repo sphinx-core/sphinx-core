@@ -46,7 +46,6 @@ const (
 )
 
 // NewSphinxHash creates a new SphinxHash with a specific bit size for the hash.
-// It performs ChainedHash immediately upon creation.
 // Parameters:
 // - bitSize: the desired bit size of the hash (128, 256, 384, or 512)
 // Returns a pointer to a new SphinxHash instance.
@@ -59,7 +58,7 @@ func NewSphinxHash(bitSize int) *SphinxHash {
 	// Example input data (you can modify this as needed)
 	inputData := []byte("sample input data")
 
-	// Perform hash calculations
+	// Perform hash calculations using the provided input data
 	chainedHash := s.ChainedHash(inputData)
 
 	_ = chainedHash // Store or print as needed
@@ -174,6 +173,17 @@ func (s *SphinxHash) sphinxHash(hash1, hash2 []byte, primeConstant uint64) []byt
 // GetHash generates the hash for the given data.
 func (s *SphinxHash) GetHash(data []byte) []byte {
 	return s.hashData(data) // Return the hash of the input data
+}
+
+// secureRandomUint64 generates a secure random uint64 value.
+func secureRandomUint64() (uint64, error) {
+	b := make([]byte, 8)   // Create a byte slice to hold 8 bytes (64 bits)
+	_, err := rand.Read(b) // Read random bytes into the slice
+	if err != nil {
+		return 0, err // Return error if random generation fails
+	}
+
+	return binary.BigEndian.Uint64(b), nil // Convert bytes to uint64 and return
 }
 
 // secureRandomUint64 generates a secure random uint64 value.
