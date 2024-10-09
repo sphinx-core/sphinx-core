@@ -1,4 +1,4 @@
-# SPHINX IMPLEMENTATION PROPOSAL (SIP-0003)
+SPHINX IMPLEMENTATION PROPOSAL (SIP-0003)
 
 ## SphinxHash and Grover's Algorithm: Security Implications
 
