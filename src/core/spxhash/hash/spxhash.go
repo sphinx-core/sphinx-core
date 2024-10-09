@@ -31,7 +31,7 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-// Instructions https://crypto.stackexchange.com/questions/270/guarding-against-cryptanalytic-breakthroughs-combining-multiple-hash-functions/328#328
+// Instructions sets https://crypto.stackexchange.com/questions/270/guarding-against-cryptanalytic-breakthroughs-combining-multiple-hash-functions/328#328
 
 // SphinxHash is a structure that encapsulates the combination and hashing logic.
 type SphinxHash struct {
