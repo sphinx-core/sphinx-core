@@ -222,7 +222,12 @@ func (s *SphinxHash) ConcatenatedHash(data []byte) []byte {
 // - data: the input data to hash
 // Returns the resulting XOR combined hash as a byte slice.
 func (s *SphinxHash) XORHash(data []byte) []byte {
-	hash1 := sha256.Sum256(data)                     // Compute SHA-256 hash
-	hash2 := sha512.Sum512(data)                     // Compute SHA-512 hash
-	return s.sphinxHash(hash1[:], hash2[:], prime32) // Combine the two hashes using XOR
+	hash1 := sha256.Sum256(data) // Compute SHA-256 hash
+	hash2 := sha512.Sum512(data) // Compute SHA-512 hash
+
+	// Create a new hash1 with 64 bytes and copy the original hash1
+	paddedHash1 := make([]byte, 64)  // 64 bytes for SHA-512
+	copy(paddedHash1[32:], hash1[:]) // Copy SHA-256 hash into the last 32 bytes
+
+	return s.sphinxHash(paddedHash1, hash2[:], prime32) // Combine the two hashes using XOR
 }
