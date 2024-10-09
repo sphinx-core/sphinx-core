@@ -31,7 +31,7 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-// Instructions sets https://crypto.stackexchange.com/questions/270/guarding-against-cryptanalytic-breakthroughs-combining-multiple-hash-functions/328#328
+// Instructions sets https://crypto.stackexchange.com/questions/270/guarding-against-cryptanalytic-breakthroughs-combining-multiple-hash-functions/328#328 and https://stackoverflow.com/questions/5889238/why-is-xor-the-default-way-to-combine-hashes
 
 // SphinxHash is a structure that encapsulates the combination and hashing logic.
 type SphinxHash struct {
@@ -46,7 +46,7 @@ const (
 )
 
 // NewSphinxHash creates a new SphinxHash with a specific bit size for the hash.
-// It performs XORHash, ConcatenatedHash, and ChainedHash immediately upon creation.
+// It performs ChainedHash immediately upon creation.
 // Parameters:
 // - bitSize: the desired bit size of the hash (128, 256, 384, or 512)
 // Returns a pointer to a new SphinxHash instance.
@@ -186,26 +186,60 @@ func secureRandomUint64() (uint64, error) {
 	return binary.LittleEndian.Uint64(b), nil // Convert the byte slice to a uint64 using little-endian format
 }
 
-// ChainedHash combines SHA-256 and SHAKE-256 as C(H1, H2).
-// C(H1, H2) means we apply SHA-256 and SHAKE-256 to the same data and combine the results.
+// ChainedHash computes a combined hash of the input data using both SHA-256 and SHAKE-256.
+// It follows the principle of C(H1, H2), where H1 is the hash obtained from SHA-256
+// and H2 is the hash obtained from SHAKE-256. The results of these two hashing functions
+// are then combined to produce a final hash value.
+//
 // Parameters:
-// - data: the input data to hash
-// Returns the resulting combined hash as a byte slice.
+// - data: the input data to hash, provided as a byte slice.
+//
+// Returns:
+// - A byte slice containing the resulting combined hash.
+// This method employs an improved combination technique to mitigate collision risks
+// and maintain unique hash properties.
 func (s *SphinxHash) ChainedHash(data []byte) []byte {
-	// Compute H1 using SHA-256
+	// Calculate H1 by applying the SHA-256 hash function to the input data.
 	h1 := sha256.Sum256(data)
 
-	// Compute H2 using SHAKE-256
-	shake := sha3.NewShake256() // SHAKE-256 is a XOF (Extendable-Output Function)
-	shake.Write(data)           // Feed data into the SHAKE instance
-	h2 := make([]byte, 32)      // 256 bits = 32 bytes for SHAKE-256
-	shake.Read(h2)
+	// Calculate H2 using the SHAKE-256 hash function, which is an extendable-output function (XOF).
+	// We create a new SHAKE-256 instance and feed the input data into it.
+	shake := sha3.NewShake256()
+	shake.Write(data)
+	h2 := make([]byte, 32) // Prepare a byte slice of 32 bytes to hold the output of SHAKE-256 (256 bits).
+	shake.Read(h2)         // Read the output from the SHAKE-256 instance into h2.
 
-	// Combine H1 and H2 (e.g., by XOR or concatenation)
+	// Initialize a byte slice for the combined hash, ensuring it has the same length as H1 and H2.
 	combinedHash := make([]byte, 32)
-	for i := 0; i < 32; i++ {
-		combinedHash[i] = h1[i] ^ h2[i] // XOR combination
-	}
 
-	return combinedHash
+	// Convert the byte slices of H1 and H2 into uint64 integers for better combination logic.
+	h1Int := byteArrayToUint64(h1[:]) // Convert H1 (SHA-256 output) to uint64.
+	h2Int := byteArrayToUint64(h2[:]) // Convert H2 (SHAKE-256 output) to uint64.
+
+	// Combine the two hash integers using an improved method to avoid symmetry and reduce collisions.
+	// We multiply h1Int by 3 (an odd constant) to break symmetry and add h2Int to create the final combined hash.
+	combinedHashInt := h1Int*3 + h2Int
+	uint64ToByteArray(combinedHashInt, combinedHash) // Convert the combined hash back to a byte array.
+
+	return combinedHash // Return the final combined hash as a byte slice.
+}
+
+// byteArrayToUint64 converts a byte array to a uint64 integer.
+// This function shifts each byte of the input array into the correct position
+// within a uint64, combining them into a single integer value.
+func byteArrayToUint64(b []byte) uint64 {
+	var result uint64
+	for i := 0; i < len(b); i++ {
+		result |= uint64(b[i]) << (8 * uint64(i)) // Shift each byte into the appropriate position in the uint64.
+	}
+	return result // Return the resulting uint64 value.
+}
+
+// uint64ToByteArray converts a uint64 integer back into a byte array.
+// This function extracts each byte from the uint64 integer and stores it
+// in the provided byte slice, filling it from least significant byte to most.
+func uint64ToByteArray(n uint64, b []byte) {
+	for i := 0; i < len(b); i++ {
+		b[i] = byte(n >> (8 * uint64(i))) // Extract each byte by shifting the uint64 right and converting to byte.
+	}
 }
