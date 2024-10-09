@@ -31,14 +31,17 @@ import (
 
 func main() {
 	// Example input string
-	input := "Hello, SWIFFTX!"
+	input := []byte("Hello, SWIFFTX!")
 
-	// Call the SWIFFTXHash function
-	hash, err := swifftx.SWIFFTXHash(input)
+	// Specify the desired output size for the hash (e.g., 512 bits)
+	outputSize := 512
+
+	// Call the Hash function from the swifftx package
+	hash, err := swifftx.Hash(outputSize, input)
 	if err != nil {
 		log.Fatalf("Error hashing input: %v", err)
 	}
 
 	// Output the result
-	fmt.Printf("Input: %s\nHash: %s\n", input, hash)
+	fmt.Printf("Input: %s\nHash: %x\n", input, hash)
 }
