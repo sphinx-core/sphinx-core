@@ -22,26 +22,41 @@
 
 package swifftx
 
+/*
+#cgo CFLAGS: -I.
+#cgo LDFLAGS: -L. -lSHA3
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>  // Include for sprintf
+#include "SHA3.h"
+
+void HashInput(const char *input, int length, char *output) {
+    BitSequence resultingDigest[SWIFFTX_OUTPUT_BLOCK_SIZE] = {0};
+    HashReturn exitCode;
+
+    exitCode = Hash(512, (const BitSequence *)input, length * 8, resultingDigest);  // 512-bit output
+
+    if (exitCode == SUCCESS) {
+        for (int i = 0; i < 64; i++) { // 64 bytes for 512 bits
+            sprintf(output + (i * 2), "%02X", resultingDigest[i]); // Convert to hex
+        }
+    }
+}
+*/
+import "C"
 import (
-	"bytes"
-	"os/exec"
-	"strings"
+	"unsafe"
 )
 
-// SWIFFTXHash computes the SHA3 hash of the input string by calling tester.exe and returns it in hex format.
+// SWIFFTXHash computes the SHA3 hash of the input string and returns it in hex format.
 func SWIFFTXHash(input string) (string, error) {
-	// Prepare the command to call tester.exe
-	cmd := exec.Command("./tester.exe", input) // Assuming tester.exe takes the input as an argument
+	length := len(input)
+	output := make([]byte, 128) // 64 bytes = 512 bits, each byte represented by 2 hex chars
 
-	// Execute the command and capture the output
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	err := cmd.Run()
-	if err != nil {
-		return "", err // Return the error if the command fails
-	}
+	cInput := C.CString(input)
+	defer C.free(unsafe.Pointer(cInput))
 
-	// The output from tester.exe should be in hex format
-	hashOutput := strings.TrimSpace(out.String()) // Trim any extra spaces/newlines
-	return hashOutput, nil
+	C.HashInput(cInput, C.int(length), (*C.char)(unsafe.Pointer(&output[0])))
+
+	return string(output), nil
 }
