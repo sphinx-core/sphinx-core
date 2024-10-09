@@ -3,48 +3,40 @@ To understand how Grover's algorithm affects the security of your SphinxHash imp
 Grover's Algorithm
 Quantum Search: Grover's algorithm provides a quadratic speedup for searching unsorted databases. In the context of cryptography, this translates to a reduction in the effective security level of a hash function.
 Hash Collision Resistance: If you have a hash function with a length of 
+
 n
 n bits, Grover's algorithm allows an attacker to find a pre-image (an input that hashes to a particular output) or a collision (two different inputs that hash to the same output) in 
-O
-(
-2
-n
-/
-2
-)
-O(2 
-n/2
- ) time, instead of
-O
-(
-2
-n
-)
-O(2 
-n
- ) with classical brute-force methods. For example, for SHA-256 (which has a 256-bit output), Grover's algorithm can find a pre-image in approximately 
-O
-(
-2
-128
-)
-O(2 
-128
- ) operations.
+
+O(2n/2)O(2 n/2) 
+
+time, instead of
+
+O(2n)O(2 n) 
+
+with classical brute-force methods. For example, for SHA-256 (which has a 256-bit output), Grover's algorithm can find a pre-image in approximately 
+
+O(2128)O(2 128) operations.
+
 Security Implications for SphinxHash
 In your SphinxHash, you're using both SHA-256 and SHAKE-256, which could potentially be attacked with Grover's algorithm. Here’s how:
 
 Independent Hash Functions: If the security of SphinxHash relies on both SHA-256 and SHAKE-256 simultaneously (which it does since both are used in the hashData function), an attacker would need to break both independently. Each function would be subject to Grover's algorithm.
 Combined Security Level:
-SHA-256: With Grover's algorithm, the effective pre-image resistance drops from 256 bits to 128 bits.
-SHAKE-256: If configured to produce a 256-bit output, the effective security drops similarly to 128 bits.
+
+- SHA-256: With Grover's algorithm, the effective pre-image resistance drops from 256 bits to 128 bits.-
+
+- SHAKE-256: If configured to produce a 256-bit output, the effective security drops similarly to 128 bits.
+
 Overall Security: The security of your SphinxHash would not merely be the sum of the effective security levels of the individual components. Instead, the most vulnerable hash function dictates the overall strength. Therefore, if an attacker can efficiently attack either SHA-256 or SHAKE-256 with Grover's algorithm, they can effectively reduce the security of your combined hash to around 128 bits.
 Mitigation Strategies
+
+
 If you are concerned about the potential vulnerability to Grover's algorithm, consider the following strategies:
 
 Use Longer Hash Outputs: Increase the bit size of the hash output (e.g., consider using SHA-512) to raise the effective security level.
 Incorporate Additional Hash Functions: Instead of just combining SHA-256 and SHAKE-256, consider adding other secure hash functions (e.g., BLAKE2, SHA-3) to your SphinxHash to diversify the cryptographic strength.
 Post-Quantum Cryptography: Explore implementing hash functions that are believed to be resistant to quantum attacks, as the cryptographic landscape is expected to evolve with advancements in quantum computing.
 Frequent Hashing Updates: Regularly review and update the hashing algorithms and mechanisms used as new vulnerabilities are discovered or as quantum computing becomes more feasible.
+
 Summary
 Grover's algorithm can effectively reduce the security of both SHA-256 and SHAKE-256 when they are part of your SphinxHash. An attacker would indeed need to break both hash functions, but the overall security level would still be limited by the one that is easier to break (effectively reducing the security to about 128 bits). Consider adapting your design to enhance resistance against quantum attacks and provide stronger security.
