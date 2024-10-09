@@ -44,9 +44,6 @@ const (
 )
 
 // NewSphinxHash creates a new SphinxHash with a specific bit size for the hash.
-// Parameters:
-// - bitSize: the desired bit size of the hash (128, 256, 384, or 512)
-// Returns a pointer to a new SphinxHash instance.
 func NewSphinxHash(bitSize int) *SphinxHash {
 	return &SphinxHash{
 		bitSize: bitSize,
@@ -55,25 +52,18 @@ func NewSphinxHash(bitSize int) *SphinxHash {
 }
 
 // Write adds data to the hash.
-// Parameters:
-// - p: the byte slice of data to be added
-// Returns the number of bytes written and any error encountered.
 func (s *SphinxHash) Write(p []byte) (n int, err error) {
 	s.data = append(s.data, p...) // Append new data to the existing data
 	return len(p), nil            // Return the number of bytes written
 }
 
 // Sum appends the current hash to b and returns the resulting slice.
-// Parameters:
-// - b: a byte slice to append the hash to
-// Returns the resulting byte slice after appending the hash.
 func (s *SphinxHash) Sum(b []byte) []byte {
-	hash := s.hashData(s.data) // Compute the hash of the current data
-	return append(b, hash...)  // Append the hash to the provided byte slice
+	hash := s.GetHash(s.data) // Compute the hash of the current data
+	return append(b, hash...) // Append the hash to the provided byte slice
 }
 
 // Size returns the number of bytes in the hash based on the bit size.
-// Returns the size of the hash in bytes.
 func (s *SphinxHash) Size() int {
 	switch s.bitSize {
 	case 128:
@@ -90,7 +80,6 @@ func (s *SphinxHash) Size() int {
 }
 
 // BlockSize returns the hash block size based on the current bit size configuration.
-// Returns the block size for the current hash function.
 func (s *SphinxHash) BlockSize() int {
 	switch s.bitSize {
 	case 128:
@@ -107,53 +96,39 @@ func (s *SphinxHash) BlockSize() int {
 }
 
 // hashData calculates the combined hash of data using multiple hash functions based on the bit size.
-// Parameters:
-// - data: the input data to hash
-// Returns the resulting hash as a byte slice.
 func (s *SphinxHash) hashData(data []byte) []byte {
-	var sha2Hash []byte  // Variable to hold SHA-2 hash
-	var shakeHash []byte // Variable to hold SHAKE hash
+	var sha2Hash []byte
 
 	// Generate SHA2 and SHAKE hashes based on the bit size
 	switch s.bitSize {
 	case 128:
-		// Use SHAKE128 to generate a 128-bit hash
-		shake := sha3.NewShake128()  // Create a new SHAKE128 instance
-		shake.Write(data)            // Write the input data to the SHAKE instance
-		shakeHash = make([]byte, 16) // 128 bits = 16 bytes
-		shake.Read(shakeHash)        // Read the generated hash
-		return shakeHash             // Return the 128-bit hash
+		shake := sha3.NewShake128()   // Create a new SHAKE128 instance
+		shake.Write(data)             // Write the input data to the SHAKE instance
+		shakeHash := make([]byte, 16) // 128 bits = 16 bytes
+		shake.Read(shakeHash)         // Read the generated hash
+		return shakeHash              // Return the 128-bit hash
 	case 256:
-		// Use SHA-256 to generate a 256-bit hash
 		hash := sha256.Sum256(data)                      // Compute the SHA-256 hash
 		sha2Hash = hash[:]                               // Convert the array to a slice
 		return s.sphinxHash(sha2Hash, sha2Hash, prime32) // Combine the hash
 	case 384:
-		// Use SHA-384 to generate a 384-bit hash
 		hash := sha512.Sum384(data)                      // Compute the SHA-384 hash
 		sha2Hash = hash[:]                               // Convert the array to a slice
 		return s.sphinxHash(sha2Hash, sha2Hash, prime64) // Combine the hash
 	case 512:
-		// Use SHA-512 to generate a 512-bit hash
 		hash := sha512.Sum512(data)                      // Compute the SHA-512 hash
 		sha2Hash = hash[:]                               // Convert the array to a slice
 		return s.sphinxHash(sha2Hash, sha2Hash, prime64) // Combine the hash
 	default:
-		// Default to SHAKE256 if no bit size matches
-		shake := sha3.NewShake256()  // Create a new SHAKE256 instance
-		shake.Write(data)            // Write the input data to the SHAKE instance
-		shakeHash = make([]byte, 32) // 256 bits = 32 bytes
-		shake.Read(shakeHash)        // Read the generated hash
-		return shakeHash             // Return the 256-bit hash
+		shake := sha3.NewShake256()   // Create a new SHAKE256 instance
+		shake.Write(data)             // Write the input data to the SHAKE instance
+		shakeHash := make([]byte, 32) // 256 bits = 32 bytes
+		shake.Read(shakeHash)         // Read the generated hash
+		return shakeHash              // Return the 256-bit hash
 	}
 }
 
 // sphinxHash combines two byte slices (hash1 and hash2) using a prime constant and applies structured combinations.
-// Parameters:
-// - hash1: the first byte slice (hash)
-// - hash2: the second byte slice (hash)
-// - primeConstant: a prime constant for mixing
-// Returns the combined hash as a byte slice.
 func (s *SphinxHash) sphinxHash(hash1, hash2 []byte, primeConstant uint64) []byte {
 	if len(hash1) != len(hash2) {
 		panic("hash1 and hash2 must have the same length") // Ensure both hashes are of the same length
@@ -181,15 +156,11 @@ func (s *SphinxHash) sphinxHash(hash1, hash2 []byte, primeConstant uint64) []byt
 }
 
 // GetHash generates the hash for the given data.
-// Parameters:
-// - data: the input data to hash
-// Returns the resulting hash as a byte slice.
 func (s *SphinxHash) GetHash(data []byte) []byte {
 	return s.hashData(data) // Return the hash of the input data
 }
 
 // secureRandomUint64 generates a secure random uint64 value.
-// Returns a secure random uint64 and any error encountered.
 func secureRandomUint64() (uint64, error) {
 	b := make([]byte, 8)   // Create a byte slice to hold 8 bytes (64 bits)
 	_, err := rand.Read(b) // Read random bytes into the slice
@@ -197,4 +168,40 @@ func secureRandomUint64() (uint64, error) {
 		return 0, err // Return error if random generation fails
 	}
 	return binary.LittleEndian.Uint64(b), nil // Convert the byte slice to a uint64 using little-endian format
+}
+
+// ChainedHash calculates a hash using a chain of two hash functions (SHA-256 and SHAKE-256).
+// Parameters:
+// - data: the input data to hash
+// Returns the resulting chained hash as a byte slice.
+func (s *SphinxHash) ChainedHash(data []byte) []byte {
+	hash1 := sha256.Sum256(data)                      // Compute SHA-256 hash
+	shake := sha3.NewShake256()                       // Create a new SHAKE256 instance
+	shake.Write(data)                                 // Write the input data to the SHAKE instance
+	shakeHash := make([]byte, 32)                     // 256 bits = 32 bytes
+	shake.Read(shakeHash)                             // Read the generated hash
+	return s.sphinxHash(hash1[:], shakeHash, prime32) // Combine SHA-256 and SHAKE-256 hashes
+}
+
+// ConcatenatedHash calculates a hash using concatenation of two hash functions.
+// Parameters:
+// - data: the input data to hash
+// Returns the resulting concatenated hash as a byte slice.
+func (s *SphinxHash) ConcatenatedHash(data []byte) []byte {
+	hash1 := sha256.Sum256(data)          // Compute SHA-256 hash
+	shake := sha3.NewShake256()           // Create a new SHAKE256 instance
+	shake.Write(data)                     // Write the input data to the SHAKE instance
+	shakeHash := make([]byte, 32)         // 256 bits = 32 bytes
+	shake.Read(shakeHash)                 // Read the generated hash
+	return append(hash1[:], shakeHash...) // Concatenate the two hashes
+}
+
+// XORHash calculates a hash using the XOR combination of two hash functions.
+// Parameters:
+// - data: the input data to hash
+// Returns the resulting XOR combined hash as a byte slice.
+func (s *SphinxHash) XORHash(data []byte) []byte {
+	hash1 := sha256.Sum256(data)                     // Compute SHA-256 hash
+	hash2 := sha512.Sum512(data)                     // Compute SHA-512 hash
+	return s.sphinxHash(hash1[:], hash2[:], prime32) // Combine the two hashes using XOR
 }
