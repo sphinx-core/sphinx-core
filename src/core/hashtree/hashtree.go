@@ -30,7 +30,7 @@ import (
 	"syscall"
 
 	"github.com/syndtr/goleveldb/leveldb"
-	"golang.org/x/crypto/sha3" // Import SHAKE-256 package
+	"golang.org/x/crypto/sha3"
 )
 
 var maxFileSize = 1 << 30 // 1 GiB max file size for memory mapping
