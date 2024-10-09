@@ -48,6 +48,7 @@ import (
 	"unsafe"
 )
 
+// SWIFFTXHash computes the SHA3 hash of the input string and returns it in hex format.
 func SWIFFTXHash(input string) (string, error) {
 	length := len(input)
 	output := make([]byte, 128) // 64 bytes = 512 bits, each byte represented by 2 hex chars
