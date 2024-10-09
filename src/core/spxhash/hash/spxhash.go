@@ -27,21 +27,23 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/binary"
+	"hash/fnv"
 	"sync"
 
 	"golang.org/x/crypto/sha3"
 )
 
-// References
-// https://crypto.stackexchange.com/questions/270/guarding-against-cryptanalytic-breakthroughs-combining-multiple-hash-functions/328#328
+// References https://crypto.stackexchange.com/questions/270/guarding-against-cryptanalytic-breakthroughs-combining-multiple-hash-functions/328#328
 // https://stackoverflow.com/questions/5889238/why-is-xor-the-default-way-to-combine-hashes
 
 // SphinxHash is a structure that encapsulates the combination and hashing logic.
 type SphinxHash struct {
-	bitSize int               // Specifies the bit size of the hash (128, 256, 384, 512)
-	data    []byte            // Holds the input data to be hashed
-	cache   map[string][]byte // Cache to store previously computed hashes
-	mutex   sync.Mutex        // Mutex to protect access to the cache
+	bitSize      int               // Specifies the bit size of the hash (128, 256, 384, 512)
+	data         []byte            // Holds the input data to be hashed
+	cache        map[uint64][]byte // Cache to store previously computed hashes
+	cacheKeys    []uint64          // Cache keys for eviction tracking
+	mutex        sync.Mutex        // Mutex to protect access to the cache
+	maxCacheSize int               // Maximum cache size
 }
 
 // Define prime constants for hash calculations.
@@ -51,22 +53,14 @@ const (
 )
 
 // NewSphinxHash creates a new SphinxHash with a specific bit size for the hash.
-func NewSphinxHash(bitSize int) *SphinxHash {
-	s := &SphinxHash{
-		bitSize: bitSize,
-		data:    nil,                     // Initialize data to nil
-		cache:   make(map[string][]byte), // Initialize cache
+func NewSphinxHash(bitSize int, maxCacheSize int) *SphinxHash {
+	return &SphinxHash{
+		bitSize:      bitSize,
+		data:         nil,                             // Initialize data to nil
+		cache:        make(map[uint64][]byte),         // Initialize cache
+		cacheKeys:    make([]uint64, 0, maxCacheSize), // Initialize keys slice
+		maxCacheSize: maxCacheSize,                    // Set maximum cache size
 	}
-
-	// Example input data (you can modify this as needed)
-	inputData := []byte("sample input data")
-
-	// Perform hash calculations using the provided input data
-	chainedHash := s.ChainedHash(inputData)
-
-	_ = chainedHash // Store or print as needed
-
-	return s
 }
 
 // Write adds data to the hash.
@@ -175,8 +169,10 @@ func (s *SphinxHash) sphinxHash(hash1, hash2 []byte, primeConstant uint64) []byt
 
 // GetHash generates the hash for the given data, using cache for previously computed results.
 func (s *SphinxHash) GetHash(data []byte) []byte {
-	// Convert data to string for cache key (consider better hashing if data is large or complex)
-	cacheKey := string(data)
+	// Create a unique hash key for the cache based on the input data
+	hashKey := fnv.New64a()     // Create a new FNV-1a 64-bit hash
+	hashKey.Write(data)         // Write data to the hash function
+	cacheKey := hashKey.Sum64() // Get the 64-bit hash as cache key
 
 	s.mutex.Lock() // Lock the mutex to protect access to the cache
 	if cachedHash, exists := s.cache[cacheKey]; exists {
@@ -191,9 +187,17 @@ func (s *SphinxHash) GetHash(data []byte) []byte {
 	// Store the computed hash in cache
 	s.mutex.Lock() // Lock the mutex again to write to cache
 	s.cache[cacheKey] = hash
-	s.mutex.Unlock() // Unlock the mutex after updating the cache
+	s.cacheKeys = append(s.cacheKeys, cacheKey) // Add the new key to cache keys
 
-	return hash // Return the newly computed hash
+	// Evict the oldest cache entry if the cache exceeds max size
+	if len(s.cacheKeys) > s.maxCacheSize {
+		oldestKey := s.cacheKeys[0]   // Get the oldest key
+		delete(s.cache, oldestKey)    // Remove it from the cache
+		s.cacheKeys = s.cacheKeys[1:] // Remove the oldest key from keys slice
+	}
+
+	s.mutex.Unlock() // Unlock the mutex after updating the cache
+	return hash      // Return the newly computed hash
 }
 
 // secureRandomUint64 generates a secure random uint64 value.
@@ -204,39 +208,5 @@ func secureRandomUint64() (uint64, error) {
 		return 0, err // Return error if random generation fails
 	}
 
-	return binary.BigEndian.Uint64(b), nil // Convert bytes to uint64 and return
-}
-
-// ChainedHash computes a combined hash of the input data using both SHA-256 and SHAKE-256.
-func (s *SphinxHash) ChainedHash(data []byte) []byte {
-	// Calculate H1 by applying the SHA-256 hash function to the input data.
-	h1 := sha256.Sum256(data)
-
-	// Calculate H2 using the SHAKE-256 hash function.
-	shake := sha3.NewShake256()
-	shake.Write(data)
-	h2 := make([]byte, 32) // Prepare a byte slice for SHAKE-256 output.
-	shake.Read(h2)         // Read the output from the SHAKE-256 instance into h2.
-
-	// Initialize a byte slice for the combined hash.
-	combinedHash := make([]byte, 32)
-
-	// Combine the two hash results (H1 and H2).
-	h1Int := byteArrayToUint64(h1[:]) // Convert the SHA-256 hash to uint64.
-	h2Int := byteArrayToUint64(h2)    // Convert the SHAKE-256 hash to uint64.
-
-	// Combine H1 and H2 using XOR and return the result.
-	for i := 0; i < len(combinedHash); i++ {
-		combinedHash[i] = byte(h1Int ^ h2Int) // Combine using XOR.
-	}
-
-	return combinedHash // Return the final combined hash.
-}
-
-// byteArrayToUint64 converts a byte array to a uint64 integer.
-func byteArrayToUint64(data []byte) uint64 {
-	if len(data) < 8 {
-		panic("byteArrayToUint64: data length less than 8") // Ensure sufficient length
-	}
-	return binary.BigEndian.Uint64(data[:8]) // Convert first 8 bytes to uint64
+	return binary.BigEndian.Uint64(b), nil // Convert the byte slice to uint64 and return
 }
