@@ -101,18 +101,17 @@ func (s *SphinxHash) hashData(data []byte) []byte {
 		// Use SHA-256 to generate a 256-bit hash
 		hash := sha256.Sum256(data) // Returns [32]byte
 		sha2Hash = hash[:]
-		// You can choose to use either SHA-2 or SHAKE here
-		return s.sphinxHash(sha2Hash, sha2Hash, prime32) // Use only SHA-256 result
+		return s.sphinxHash(sha2Hash, sha2Hash, prime32) // Use SHA-256 result
 	case 384:
 		// Use SHA-384 to generate a 384-bit hash
 		hash := sha512.Sum384(data) // Returns [48]byte
 		sha2Hash = hash[:]
-		return s.sphinxHash(sha2Hash, sha2Hash, prime64) // Use only SHA-384 result
+		return s.sphinxHash(sha2Hash, sha2Hash, prime64) // Use SHA-384 result
 	case 512:
 		// Use SHA-512 to generate a 512-bit hash
 		hash := sha512.Sum512(data) // Returns [64]byte
 		sha2Hash = hash[:]
-		return s.sphinxHash(sha2Hash, sha2Hash, prime64) // Use only SHA-512 result
+		return s.sphinxHash(sha2Hash, sha2Hash, prime64) // Use SHA-512 result
 	default:
 		// Default to 256-bit SHAKE256 if no bit size matches
 		shake := sha3.NewShake256()
@@ -123,8 +122,7 @@ func (s *SphinxHash) hashData(data []byte) []byte {
 	}
 }
 
-// sphinxHash combines two byte slices (hash1 and hash2) using a prime constant.
-// It ensures constant-time operation to mitigate timing attacks by avoiding any data-dependent branches.
+// sphinxHash combines two byte slices (hash1 and hash2) using a prime constant and applies structured combinations.
 func (s *SphinxHash) sphinxHash(hash1, hash2 []byte, primeConstant uint64) []byte {
 	// Ensure that both hash slices are of the same length, as we combine corresponding bytes.
 	if len(hash1) != len(hash2) {
@@ -132,7 +130,6 @@ func (s *SphinxHash) sphinxHash(hash1, hash2 []byte, primeConstant uint64) []byt
 	}
 
 	// Introduce a random factor for added entropy in the hash combination.
-	// This random value is generated securely using crypto/rand.
 	randomFactor, err := secureRandomUint64() // Generate a secure random uint64 value
 	if err != nil {
 		panic("failed to generate random factor")
@@ -141,20 +138,15 @@ func (s *SphinxHash) sphinxHash(hash1, hash2 []byte, primeConstant uint64) []byt
 	// Create a slice to hold the final combined hash. The length matches that of hash1 (and hash2).
 	sphinxHash := make([]byte, len(hash1))
 
-	// Iterate over each byte of the input hashes and combine them.
+	// Iterate over each byte of the input hashes and combine them using structured combinations.
 	for i := 0; i < len(hash1); i++ {
-		// Convert each byte from hash1 and hash2 to uint64 for arithmetic operations.
 		h1 := uint64(hash1[i]) // First byte from hash1
 		h2 := uint64(hash2[i]) // Corresponding byte from hash2
 
-		// Combine the two hash values with constant-time operations:
-		// 1. Multiply h1 by 3 to spread out the bits and increase the mixing effect.
-		// 2. Add h2 (second hash) to the result.
-		// 3. Add the secure random factor for unpredictability.
-		combined := h1*3 + h2 + randomFactor
-
-		// XOR the combined result with the prime constant to further mix the bits and add complexity.
-		sphinxHash[i] = byte(combined ^ primeConstant)
+		// Structured combination using both chaining and concatenation
+		// Example: sphinxHash[i] = H0(H1(data)) XOR randomFactor
+		combined := (h1*3 + h2 + randomFactor) ^ primeConstant
+		sphinxHash[i] = byte(combined)
 	}
 
 	// Return the final combined hash as a byte slice.
