@@ -42,8 +42,8 @@
 							  - HAIFA_NUM_OF_BITS_SIZE - HAIFA_SALT_SIZE)
 
 
-extern const unsigned char SALT_VALUE[];
-extern const unsigned char HAIFA_IV_256[];
+extern const unsigned char SALT_VALUE[]; // Define it as an array
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // NIST API definitions

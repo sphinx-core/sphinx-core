@@ -15,6 +15,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+
+const unsigned char SALT_VALUE[] = {114, 238, 247, 26, 192, 28, 170, 160}; // Define it here
 // The default salt value.
 // This is the expansion of e (Euler's number) - the 19 digits after 2.71:
 // 8281828459045235360.
