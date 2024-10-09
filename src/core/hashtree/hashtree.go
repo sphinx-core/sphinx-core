@@ -24,13 +24,14 @@ package hashtree
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"sync"
 	"syscall"
 
 	"github.com/syndtr/goleveldb/leveldb"
-	"golang.org/x/crypto/sha3"
 )
 
 var maxFileSize = 1 << 30 // 1 GiB max file size for memory mapping
@@ -62,13 +63,10 @@ func (tree *HashTree) Build() error {
 	return nil
 }
 
-// Compute the hash of a given data slice using SHAKE-256
+// Compute the hash of a given data slice
 func computeHash(data []byte) []byte {
-	hash := make([]byte, 32)    // Allocate a buffer for the output hash (256 bits = 32 bytes)
-	shake := sha3.NewShake256() // Create a new SHAKE-256 hash
-	shake.Write(data)           // Write the data to the SHAKE instance
-	shake.Read(hash)            // Read the hash output
-	return hash                 // Return the resulting hash
+	hash := sha256.Sum256(data) // Compute SHA-256 hash
+	return hash[:]
 }
 
 // BuildHashTree builds a Merkle hash tree from leaf nodes.
@@ -217,26 +215,67 @@ func MemoryMapFile(filename string) ([]byte, error) {
 	// Open the file for reading using os.Open
 	file, err := os.Open(filename)
 	if err != nil {
-		return nil, err // Return the error if the file cannot be opened
+		// Return an error if the file cannot be opened, providing context
+		return nil, fmt.Errorf("error opening file: %w", err)
 	}
-	defer file.Close() // Ensure the file is closed after use
+	// Ensure the file is closed when the function returns, even if an error occurs
+	defer file.Close()
 
-	// Get file information
-	fileInfo, err := file.Stat() // Retrieve file info
+	// Get file statistics, such as size, using file.Stat
+	stat, err := file.Stat()
 	if err != nil {
-		return nil, err // Return error if file stats cannot be obtained
+		// Return an error if there is an issue retrieving file stats
+		return nil, fmt.Errorf("error getting file stats: %w", err)
 	}
 
-	// Check if the file size exceeds the maximum allowed size
-	if fileInfo.Size() > maxFileSize {
-		return nil, fmt.Errorf("file size exceeds maximum allowed size of %d bytes", maxFileSize)
+	// Get the size of the file from the stat object
+	size := stat.Size()
+	// Compare the file size with the maximum allowed file size (maxFileSize)
+	// Convert maxFileSize to int64 for proper comparison, since file size is in int64
+	if size > int64(maxFileSize) {
+		// Return an error if the file size exceeds the allowed limit
+		return nil, fmt.Errorf("file size exceeds maximum limit of %d bytes", maxFileSize)
 	}
 
-	// Memory-map the file for efficient access to its contents
-	data, err := syscall.Mmap(int(file.Fd()), 0, int(fileInfo.Size()), syscall.PROT_READ, syscall.MAP_PRIVATE)
+	// Memory-map the file using syscall.Mmap
+	// Arguments: file descriptor (int(file.Fd())), offset (0), size, protection (read-only), shared mapping
+	data, err := syscall.Mmap(int(file.Fd()), 0, int(size), syscall.PROT_READ, syscall.MAP_SHARED)
 	if err != nil {
-		return nil, err // Return the error if memory mapping fails
+		// Return an error if memory mapping fails
+		return nil, fmt.Errorf("error mapping file: %w", err)
 	}
 
-	return data, nil // Return the mapped data
+	// Return the memory-mapped data as a byte slice
+	return data, nil
+}
+
+// UnmapFile unmaps a file from memory with error handling
+func UnmapFile(data []byte) error {
+	if err := syscall.Munmap(data); err != nil {
+		return fmt.Errorf("error unmapping file: %w", err)
+	}
+	return nil
+}
+
+// Concurrency control for memory-mapped file access
+var mu sync.Mutex
+
+// SafeMemoryMapFile safely memory-maps a file by ensuring exclusive access using a mutex lock
+func SafeMemoryMapFile(filename string) ([]byte, error) {
+	// Lock the mutex to prevent concurrent access to the file mapping
+	mu.Lock()
+	// Ensure the mutex is unlocked when the function completes (either successfully or with an error)
+	defer mu.Unlock()
+	// Call the actual MemoryMapFile function to memory-map the specified file
+	return MemoryMapFile(filename)
+}
+
+// SafeUnmapFile safely unmaps a file by ensuring exclusive access using a mutex lock
+func SafeUnmapFile(data []byte) error {
+	// Lock the mutex to prevent concurrent access to the unmapping process
+	mu.Lock()
+	// Ensure the mutex is unlocked when the function completes (either successfully or with an error)
+	defer mu.Unlock()
+	// Call the actual UnmapFile function to unmap the provided file data
+	return UnmapFile(data)
 }
