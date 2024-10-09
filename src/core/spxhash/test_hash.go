@@ -35,8 +35,8 @@ func main() {
 	// Print the original data
 	fmt.Printf("Original Data: %s\n", data)
 
-	// Create a new SphinxHash object with the chosen bit size
-	sphinx := spxhash.NewSphinxHash(256) // Change this to 128, 256, 384, or 512
+	// Create a new SphinxHash object with the chosen bit size and cache size
+	sphinx := spxhash.NewSphinxHash(256, 100) // Set max cache size to 100
 
 	// Hash the data using the SphinxHash object
 	sphinxHash := sphinx.GetHash(data)
