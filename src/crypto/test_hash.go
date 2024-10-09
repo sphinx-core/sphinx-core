@@ -30,9 +30,15 @@ import (
 )
 
 func main() {
-	hash, err := swifftx.SWIFFTXHash("Hello, world!")
+	// Example input string
+	input := "Hello, SWIFFTX!"
+
+	// Call the SWIFFTXHash function
+	hash, err := swifftx.SWIFFTXHash(input)
 	if err != nil {
 		log.Fatalf("Error hashing input: %v", err)
 	}
-	fmt.Printf("SHA3 Hash: %s\n", hash)
+
+	// Output the result
+	fmt.Printf("Input: %s\nHash: %s\n", input, hash)
 }
