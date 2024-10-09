@@ -88,7 +88,6 @@ func (s *SphinxHash) BlockSize() int {
 func (s *SphinxHash) hashData(data []byte) []byte {
 	var sha2Hash []byte
 	var shakeHash []byte
-	var combinedHash []byte
 
 	// Generate SHA2 and SHAKE hashes based on the bit size
 	switch s.bitSize {
@@ -103,38 +102,18 @@ func (s *SphinxHash) hashData(data []byte) []byte {
 		// Use SHA-256 to generate a 256-bit hash
 		hash := sha256.Sum256(data) // Returns [32]byte
 		sha2Hash = hash[:]
-		// Use SHAKE256 to generate a 256-bit hash for added security
-		shake := sha3.NewShake256()
-		shake.Write(data)
-		shakeHash = make([]byte, 32) // 256 bits = 32 bytes
-		shake.Read(shakeHash)
-		// Combine SHA-2 and SHAKE hashes
-		combinedHash = s.sphinxHash(sha2Hash, shakeHash, prime32)
-		return s.sphinxHash(combinedHash, combinedHash, prime32) // Double hashing for extra security
+		// You can choose to use either SHA-2 or SHAKE here
+		return s.sphinxHash(sha2Hash, sha2Hash, prime32) // Use only SHA-256 result
 	case 384:
 		// Use SHA-384 to generate a 384-bit hash
 		hash := sha512.Sum384(data) // Returns [48]byte
 		sha2Hash = hash[:]
-		// Use SHAKE256 to generate a 384-bit hash for added security
-		shake := sha3.NewShake256()
-		shake.Write(data)
-		shakeHash = make([]byte, 48) // 384 bits = 48 bytes
-		shake.Read(shakeHash)
-		// Combine SHA-2 and SHAKE hashes
-		combinedHash = s.sphinxHash(sha2Hash, shakeHash, prime64)
-		return s.sphinxHash(combinedHash, combinedHash, prime64) // Double hashing for extra security
+		return s.sphinxHash(sha2Hash, sha2Hash, prime64) // Use only SHA-384 result
 	case 512:
 		// Use SHA-512 to generate a 512-bit hash
 		hash := sha512.Sum512(data) // Returns [64]byte
 		sha2Hash = hash[:]
-		// Use SHAKE256 to generate a 512-bit hash for added security
-		shake := sha3.NewShake256()
-		shake.Write(data)
-		shakeHash = make([]byte, 64) // 512 bits = 64 bytes
-		shake.Read(shakeHash)
-		// Combine SHA-2 and SHAKE hashes
-		combinedHash = s.sphinxHash(sha2Hash, shakeHash, prime64)
-		return s.sphinxHash(combinedHash, combinedHash, prime64) // Double hashing for extra security
+		return s.sphinxHash(sha2Hash, sha2Hash, prime64) // Use only SHA-512 result
 	default:
 		// Default to 256-bit SHAKE256 if no bit size matches
 		shake := sha3.NewShake256()
