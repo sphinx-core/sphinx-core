@@ -186,16 +186,6 @@ func secureRandomUint64() (uint64, error) {
 	return binary.BigEndian.Uint64(b), nil // Convert bytes to uint64 and return
 }
 
-// secureRandomUint64 generates a secure random uint64 value.
-func secureRandomUint64() (uint64, error) {
-	b := make([]byte, 8)   // Create a byte slice to hold 8 bytes (64 bits)
-	_, err := rand.Read(b) // Read random bytes into the slice
-	if err != nil {
-		return 0, err // Return error if random generation fails
-	}
-	return binary.LittleEndian.Uint64(b), nil // Convert the byte slice to a uint64 using little-endian format
-}
-
 // ChainedHash computes a combined hash of the input data using both SHA-256 and SHAKE-256.
 // It follows the principle of C(H1, H2), where H1 is the hash obtained from SHA-256
 // and H2 is the hash obtained from SHAKE-256. The results of these two hashing functions
@@ -223,33 +213,23 @@ func (s *SphinxHash) ChainedHash(data []byte) []byte {
 	combinedHash := make([]byte, 32)
 
 	// Convert the byte slices of H1 and H2 into uint64 integers for better combination logic.
-	h1Int := byteArrayToUint64(h1[:]) // Convert H1 (SHA-256 output) to uint64.
-	h2Int := byteArrayToUint64(h2[:]) // Convert H2 (SHAKE-256 output) to uint64.
+	h1Int := byteArrayToUint64(h1[:]) // Convert the SHA-256 hash (H1) into uint64 format.
+	h2Int := byteArrayToUint64(h2)    // Convert the SHAKE-256 output (H2) into uint64 format.
 
-	// Combine the two hash integers using an improved method to avoid symmetry and reduce collisions.
-	// We multiply h1Int by 3 (an odd constant) to break symmetry and add h2Int to create the final combined hash.
-	combinedHashInt := h1Int*3 + h2Int
-	uint64ToByteArray(combinedHashInt, combinedHash) // Convert the combined hash back to a byte array.
+	// Combine the two hash results (H1 and H2) into the combinedHash using a structured combination approach.
+	for i := 0; i < len(combinedHash); i++ {
+		// Applying a specific combination formula for each byte:
+		combinedHash[i] = byte(h1Int ^ h2Int) // XOR the uint64 integers and store the result in the combinedHash.
+	}
 
-	return combinedHash // Return the final combined hash as a byte slice.
+	return combinedHash // Return the final combined hash.
 }
 
-// byteArrayToUint64 converts a byte array to a uint64 integer.
-// This function shifts each byte of the input array into the correct position
-// within a uint64, combining them into a single integer value.
+// byteArrayToUint64 converts a byte slice into a uint64 value.
 func byteArrayToUint64(b []byte) uint64 {
-	var result uint64
-	for i := 0; i < len(b); i++ {
-		result |= uint64(b[i]) << (8 * uint64(i)) // Shift each byte into the appropriate position in the uint64.
+	if len(b) < 8 {
+		return 0 // Return 0 if the byte slice is too short
 	}
-	return result // Return the resulting uint64 value.
-}
 
-// uint64ToByteArray converts a uint64 integer back into a byte array.
-// This function extracts each byte from the uint64 integer and stores it
-// in the provided byte slice, filling it from least significant byte to most.
-func uint64ToByteArray(n uint64, b []byte) {
-	for i := 0; i < len(b); i++ {
-		b[i] = byte(n >> (8 * uint64(i))) // Extract each byte by shifting the uint64 right and converting to byte.
-	}
+	return binary.BigEndian.Uint64(b[:8]) // Convert the first 8 bytes to uint64
 }
