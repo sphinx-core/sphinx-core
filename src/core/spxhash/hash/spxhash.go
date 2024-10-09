@@ -23,13 +23,15 @@
 package spxhash
 
 import (
-	"crypto/rand"     // Importing cryptographic random number generation
-	"crypto/sha256"   // Importing SHA-256 hash function
-	"crypto/sha512"   // Importing SHA-512 hash function
-	"encoding/binary" // Importing binary package for byte manipulation
+	"crypto/rand"
+	"crypto/sha256"
+	"crypto/sha512"
+	"encoding/binary"
 
-	"golang.org/x/crypto/sha3" // Importing SHA-3 hash functions
+	"golang.org/x/crypto/sha3"
 )
+
+// Instructions https://crypto.stackexchange.com/questions/270/guarding-against-cryptanalytic-breakthroughs-combining-multiple-hash-functions/328#328
 
 // SphinxHash is a structure that encapsulates the combination and hashing logic.
 type SphinxHash struct {
@@ -44,11 +46,30 @@ const (
 )
 
 // NewSphinxHash creates a new SphinxHash with a specific bit size for the hash.
+// It performs XORHash, ConcatenatedHash, and ChainedHash immediately upon creation.
+// Parameters:
+// - bitSize: the desired bit size of the hash (128, 256, 384, or 512)
+// Returns a pointer to a new SphinxHash instance.
 func NewSphinxHash(bitSize int) *SphinxHash {
-	return &SphinxHash{
+	s := &SphinxHash{
 		bitSize: bitSize,
 		data:    nil, // Initialize data to nil
 	}
+
+	// Example input data (you can modify this as needed)
+	inputData := []byte("sample input data")
+
+	// Perform hash calculations
+	xorHash := s.XORHash(inputData)
+	concatenatedHash := s.ConcatenatedHash(inputData)
+	chainedHash := s.ChainedHash(inputData)
+
+	// You can store or use these hashes as needed, for example:
+	_ = xorHash          // Store or print as needed
+	_ = concatenatedHash // Store or print as needed
+	_ = chainedHash      // Store or print as needed
+
+	return s
 }
 
 // Write adds data to the hash.
