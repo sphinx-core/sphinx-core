@@ -6,7 +6,7 @@ import (
 
 	"github.com/kasperdi/SPHINCSPLUS-golang/parameters"
 	"github.com/sphinx-core/sphinx-core/src/core/hashtree"
-	"github.com/sphinx-core/sphinx-core/src/core/sphincs"
+	sign "github.com/sphinx-core/sphinx-core/src/core/sphincs"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
@@ -22,7 +22,7 @@ func main() {
 	defer db.Close()
 
 	// Initialize the SphincsManager with the LevelDB instance
-	manager := sphincs.NewSphincsManager(db) // Updated to use the new manager
+	manager := sign.NewSphincsManager(db)
 
 	// Generate keys
 	sk, pk := manager.GenerateKeys(params)
@@ -63,41 +63,41 @@ func main() {
 	fmt.Printf("Size of Merkle Tree Root Hash: %d bytes\n", len(merkleRoot.Hash))
 
 	// Save Merkle root hash to a file
-	err = hashtree.SaveRootHashToFile(merkleRoot.Hash, "merkle_root_hash.bin") // Updated function usage
+	err = hashtree.SaveRootHashToFile(merkleRoot, "merkle_root_hash.bin")
 	if err != nil {
 		log.Fatal("Failed to save root hash to file:", err)
 	}
 
 	// Load Merkle root hash from a file
-	loadedHash, err := hashtree.LoadRootHashFromFile("merkle_root_hash.bin") // Updated function usage
+	loadedHash, err := hashtree.LoadRootHashFromFile("merkle_root_hash.bin")
 	if err != nil {
 		log.Fatal("Failed to load root hash from file:", err)
 	}
 	fmt.Printf("Loaded Merkle Tree Root Hash: %x\n", loadedHash)
 
 	// Save leaves to LevelDB
-	leaves := [][]byte{sigBytes}              // Example usage
-	err = hashtree.SaveLeavesToDB(db, leaves) // Updated function usage
+	leaves := [][]byte{sigBytes} // Example usage
+	err = hashtree.SaveLeavesToDB(db, leaves)
 	if err != nil {
 		log.Fatal("Failed to save leaves to DB:", err)
 	}
 
 	// Fetch a leaf from LevelDB
-	leaf, err := hashtree.FetchLeafFromDB(db, "leaf-0") // Updated function usage
+	leaf, err := hashtree.FetchLeafFromDB(db, "leaf-0")
 	if err != nil {
 		log.Fatal("Failed to fetch leaf from DB:", err)
 	}
 	fmt.Printf("Fetched Leaf: %x\n", leaf)
 
 	// Call generateRandomData to make it used
-	randomData, err := hashtree.GenerateRandomData(16) // Updated function usage
+	randomData, err := hashtree.GenerateRandomData(16)
 	if err != nil {
 		log.Fatal("Failed to generate random data:", err)
 	}
 	fmt.Printf("Random Data: %x\n", randomData)
 
 	// Call printRootHash to make it used
-	hashtree.PrintRootHash(merkleRoot.Hash) // Updated function usage
+	hashtree.PrintRootHash(merkleRoot)
 
 	// Verify the signature and print the original message
 	isValid := manager.VerifySignature(params, message, sig, pk, merkleRoot)
