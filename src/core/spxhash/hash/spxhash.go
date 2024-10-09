@@ -60,14 +60,9 @@ func NewSphinxHash(bitSize int) *SphinxHash {
 	inputData := []byte("sample input data")
 
 	// Perform hash calculations
-	xorHash := s.XORHash(inputData)
-	concatenatedHash := s.ConcatenatedHash(inputData)
 	chainedHash := s.ChainedHash(inputData)
 
-	// You can store or use these hashes as needed, for example:
-	_ = xorHash          // Store or print as needed
-	_ = concatenatedHash // Store or print as needed
-	_ = chainedHash      // Store or print as needed
+	_ = chainedHash // Store or print as needed
 
 	return s
 }
@@ -191,43 +186,26 @@ func secureRandomUint64() (uint64, error) {
 	return binary.LittleEndian.Uint64(b), nil // Convert the byte slice to a uint64 using little-endian format
 }
 
-// ChainedHash calculates a hash using a chain of two hash functions (SHA-256 and SHAKE-256).
+// ChainedHash combines SHA-256 and SHAKE-256 as C(H1, H2).
+// C(H1, H2) means we apply SHA-256 and SHAKE-256 to the same data and combine the results.
 // Parameters:
 // - data: the input data to hash
-// Returns the resulting chained hash as a byte slice.
+// Returns the resulting combined hash as a byte slice.
 func (s *SphinxHash) ChainedHash(data []byte) []byte {
-	hash1 := sha256.Sum256(data)                      // Compute SHA-256 hash
-	shake := sha3.NewShake256()                       // Create a new SHAKE256 instance
-	shake.Write(data)                                 // Write the input data to the SHAKE instance
-	shakeHash := make([]byte, 32)                     // 256 bits = 32 bytes
-	shake.Read(shakeHash)                             // Read the generated hash
-	return s.sphinxHash(hash1[:], shakeHash, prime32) // Combine SHA-256 and SHAKE-256 hashes
-}
+	// Compute H1 using SHA-256
+	h1 := sha256.Sum256(data)
 
-// ConcatenatedHash calculates a hash using concatenation of two hash functions.
-// Parameters:
-// - data: the input data to hash
-// Returns the resulting concatenated hash as a byte slice.
-func (s *SphinxHash) ConcatenatedHash(data []byte) []byte {
-	hash1 := sha256.Sum256(data)          // Compute SHA-256 hash
-	shake := sha3.NewShake256()           // Create a new SHAKE256 instance
-	shake.Write(data)                     // Write the input data to the SHAKE instance
-	shakeHash := make([]byte, 32)         // 256 bits = 32 bytes
-	shake.Read(shakeHash)                 // Read the generated hash
-	return append(hash1[:], shakeHash...) // Concatenate the two hashes
-}
+	// Compute H2 using SHAKE-256
+	shake := sha3.NewShake256() // SHAKE-256 is a XOF (Extendable-Output Function)
+	shake.Write(data)           // Feed data into the SHAKE instance
+	h2 := make([]byte, 32)      // 256 bits = 32 bytes for SHAKE-256
+	shake.Read(h2)
 
-// XORHash calculates a hash using the XOR combination of two hash functions.
-// Parameters:
-// - data: the input data to hash
-// Returns the resulting XOR combined hash as a byte slice.
-func (s *SphinxHash) XORHash(data []byte) []byte {
-	hash1 := sha256.Sum256(data) // Compute SHA-256 hash
-	hash2 := sha512.Sum512(data) // Compute SHA-512 hash
+	// Combine H1 and H2 (e.g., by XOR or concatenation)
+	combinedHash := make([]byte, 32)
+	for i := 0; i < 32; i++ {
+		combinedHash[i] = h1[i] ^ h2[i] // XOR combination
+	}
 
-	// Create a new hash1 with 64 bytes and copy the original hash1
-	paddedHash1 := make([]byte, 64)  // 64 bytes for SHA-512
-	copy(paddedHash1[32:], hash1[:]) // Copy SHA-256 hash into the last 32 bytes
-
-	return s.sphinxHash(paddedHash1, hash2[:], prime32) // Combine the two hashes using XOR
+	return combinedHash
 }
