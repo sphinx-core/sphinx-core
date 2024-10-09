@@ -20,43 +20,54 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+// sha3.go
 package swifftx
 
 /*
 #cgo CFLAGS: -I.
 #cgo LDFLAGS: -L. -lSHA3
+#include "SHA3.h"
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>  // Include for sprintf
-#include "SHA3.h"
-
-void HashInput(const char *input, int length, char *output) {
-    BitSequence resultingDigest[SWIFFTX_OUTPUT_BLOCK_SIZE] = {0};
-    HashReturn exitCode;
-
-    exitCode = Hash(512, (const BitSequence *)input, length * 8, resultingDigest);  // 512-bit output
-
-    if (exitCode == SUCCESS) {
-        for (int i = 0; i < 64; i++) { // 64 bytes for 512 bits
-            sprintf(output + (i * 2), "%02X", resultingDigest[i]); // Convert to hex
-        }
-    }
-}
 */
 import "C"
 import (
+	"fmt"
 	"unsafe"
 )
 
-// SWIFFTXHash computes the SHA3 hash of the input string and returns it in hex format.
-func SWIFFTXHash(input string) (string, error) {
-	length := len(input)
-	output := make([]byte, 128) // 64 bytes = 512 bits, each byte represented by 2 hex chars
+const (
+	SWIFFTX_OUTPUT_BLOCK_SIZE = 64 // adjust this according to your needs
+)
 
-	cInput := C.CString(input)
-	defer C.free(unsafe.Pointer(cInput))
+// Hash is a wrapper function that calls the C Hash function.
+func Hash(outputSize int, inputMessage []byte) ([]byte, error) {
+	var resultingDigest [SWIFFTX_OUTPUT_BLOCK_SIZE]C.BitSequence
+	inputLength := C.DataLength(len(inputMessage) * 8)
+	message := C.CBytes(inputMessage)
+	defer C.free(message)
 
-	C.HashInput(cInput, C.int(length), (*C.char)(unsafe.Pointer(&output[0])))
+	exitCode := C.Hash(C.int(outputSize), (*C.BitSequence)(message), inputLength, &resultingDigest[0])
+	if exitCode != C.SUCCESS {
+		return nil, fmt.Errorf("hashing failed with error code: %d", exitCode)
+	}
 
-	return string(output), nil
+	// Convert the C array to a Go slice
+	digest := C.GoBytes(unsafe.Pointer(&resultingDigest[0]), C.int(outputSize/8))
+	return digest, nil
+}
+
+// Test function to demonstrate hashing
+func TestHash() {
+	inputMessage := []byte("Hello, world!")
+	outputSizes := []int{512, 384, 256, 224}
+
+	for _, size := range outputSizes {
+		digest, err := Hash(size, inputMessage)
+		if err != nil {
+			fmt.Println("Error:", err)
+			continue
+		}
+		fmt.Printf("Hash output for size %d: %x\n", size, digest)
+	}
 }
