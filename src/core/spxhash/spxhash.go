@@ -20,14 +20,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-package main
+package spxhash
 
 import (
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/binary"
-	"fmt"
 
 	"golang.org/x/crypto/sha3"
 )
@@ -175,21 +174,4 @@ func secureRandomUint64() (uint64, error) {
 		return 0, err
 	}
 	return binary.LittleEndian.Uint64(b), nil
-}
-
-func main() {
-	// Example data to hash
-	data := []byte("Hello world!")
-
-	// Print the original data
-	fmt.Printf("Original Data: %s\n", data)
-
-	// Create a new SphinxHash object with the chosen bit size
-	sphinx := NewSphinxHash(256) // Change this to 128, 256, 384, or 512
-
-	// Hash the data using the SphinxHash object
-	sphinxHash := sphinx.hashData(data)
-
-	// Print the combined hash
-	fmt.Printf("Sphinx Hash (%d-bit) %d bytes: %x\n", sphinx.bitSize, len(sphinxHash), sphinxHash)
 }
