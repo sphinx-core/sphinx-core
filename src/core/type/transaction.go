@@ -20,230 +20,197 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-package transaction
+package types
 
 import (
-	"encoding/hex"
+	"encoding/binary"
 	"errors"
 	"fmt"
+	"math/big"
+	"time"
 
-	"github.com/kasperdi/SPHINCSPLUS-golang/parameters"
-	"github.com/kasperdi/SPHINCSPLUS-golang/sphincs"
-	"golang.org/x/crypto/sha3"
+	"github.com/yourproject/common" // replace with your actual common package path
 )
 
-// GasFee represents gas price and limit
-type GasFee struct {
-	GasPrice int64 // Gas price in units of currency
-	GasLimit int64 // Maximum gas that can be spent on the transaction
+// Define custom errors
+var (
+	ErrUnexpectedProtection = errors.New("unexpected signature protection")
+	ErrInvalidSig           = errors.New("invalid signature")
+	ErrInvalidDataLength    = errors.New("invalid data length for unmarshal")
+)
+
+// AccessList type (define as per your requirements)
+type AccessList struct {
+	// Define your access list structure
 }
 
-// Transaction represents a single coin transaction
+// Transaction struct containing transaction data
 type Transaction struct {
-	Sender    *sphincs.SPHINCS_PK  // Sender's public key
-	Receiver  *sphincs.SPHINCS_PK  // Receiver's public key (for regular transactions)
-	Nonce     uint64               // Nonce to prevent double-spending
-	Value     int64                // Transaction value
-	Signature *sphincs.SPHINCS_SIG // SPHINCS+ signature
-	GasFee    GasFee               // Gas fee for the transaction
+	inner     TxData    // Transaction data
+	Timestamp time.Time // Add timestamp field
 }
 
-// ContractTransaction represents a contract deployment transaction
-type ContractTransaction struct {
-	Creator   *sphincs.SPHINCS_PK  // Creator's public key
-	Nonce     uint64               // Nonce to prevent replay attacks
-	Contract  string               // Contract code or logic (simplified as a string for now)
-	Bytecode  []byte               // Bytecode for the contract
-	Signature *sphincs.SPHINCS_SIG // SPHINCS+ signature
-	GasFee    GasFee               // Gas fee for deploying the contract
+// TxData interface defining essential methods for transaction data
+type TxData interface {
+	txType() byte                                 // Returns the type ID
+	copy() TxData                                 // Creates a deep copy
+	chainID() *big.Int                            // Returns the chain ID
+	accessList() AccessList                       // Returns the access list
+	data() []byte                                 // Returns the data
+	gas() uint64                                  // Returns the gas limit
+	gasPrice() *big.Int                           // Returns the gas price
+	gasTipCap() *big.Int                          // Returns the gas tip cap
+	gasFeeCap() *big.Int                          // Returns the gas fee cap
+	value() *big.Int                              // Returns the value
+	nonce() uint64                                // Returns the nonce
+	to() *common.Address                          // Returns the recipient address
+	rawSignatureValues() (v, r, s *big.Int)       // Returns raw signature values
+	setSignatureValues(chainID, v, r, s *big.Int) // Sets signature values
 }
 
-// Account represents an Ethereum-like account with a nonce and balance
-type Account struct {
-	PublicKey *sphincs.SPHINCS_PK
-	Nonce     uint64
-	Balance   int64
+// Message struct for transaction message
+type Message struct {
+	from       common.Address
+	to         *common.Address
+	nonce      uint64
+	amount     *big.Int
+	gasLimit   uint64
+	gasPrice   *big.Int
+	gasFeeCap  *big.Int
+	gasTipCap  *big.Int
+	data       []byte
+	accessList AccessList
+	isFake     bool
 }
 
-// State represents the current state of the blockchain
-type State struct {
-	data map[string]interface{}
-}
+// Methods for Message struct
+func (m Message) From() common.Address   { return m.from }
+func (m Message) To() *common.Address    { return m.to }
+func (m Message) GasPrice() *big.Int     { return m.gasPrice }
+func (m Message) GasFeeCap() *big.Int    { return m.gasFeeCap }
+func (m Message) GasTipCap() *big.Int    { return m.gasTipCap }
+func (m Message) Value() *big.Int        { return m.amount }
+func (m Message) Gas() uint64            { return m.gasLimit }
+func (m Message) Nonce() uint64          { return m.nonce }
+func (m Message) Data() []byte           { return m.data }
+func (m Message) AccessList() AccessList { return m.accessList }
+func (m Message) IsFake() bool           { return m.isFake }
 
-// Blockchain represents the public ledger
-type Blockchain struct {
-	transactions []*Transaction         // Chain of regular transactions (ledger)
-	contracts    []*ContractTransaction // Chain of contract deployment transactions
-	accounts     map[string]*Account    // Accounts by their public key (simplified)
-	state        State                  // Current state of the blockchain
-}
-
-// NewTransaction creates a new payment transaction signed by the sender
-func NewTransaction(sender *sphincs.SPHINCS_SK, receiver *sphincs.SPHINCS_PK, value int64, nonce uint64, gasPrice int64, gasLimit int64) (*Transaction, error) {
-	tx := &Transaction{
-		Sender:   sender.PublicKey(),
-		Receiver: receiver,
-		Value:    value,
-		Nonce:    nonce,
-		GasFee: GasFee{
-			GasPrice: gasPrice,
-			GasLimit: gasLimit,
-		},
-	}
-
-	// Hash the transaction data
-	txHash := tx.Hash()
-
-	// Sign the transaction hash using the sender's secret key
-	sig, _, err := sign.SignMessage(parameters.DefaultParams, txHash, sender)
+// MarshalBinary for Transaction struct
+func (tx *Transaction) MarshalBinary() ([]byte, error) {
+	data, err := tx.inner.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
 
-	tx.Signature = sig
-
-	return tx, nil
+	// Add timestamp (8 bytes)
+	timestamp := make([]byte, 8)
+	binary.BigEndian.PutUint64(timestamp, uint64(tx.Timestamp.Unix()))
+	return append(data, timestamp...), nil
 }
 
-// NewContractTransaction creates a new contract deployment signed by the creator
-func NewContractTransaction(creator *sphincs.SPHINCS_SK, contractCode string, bytecode []byte, nonce uint64, gasPrice int64, gasLimit int64) (*ContractTransaction, error) {
-	tx := &ContractTransaction{
-		Creator:  creator.PublicKey(),
-		Contract: contractCode,
-		Bytecode: bytecode,
-		Nonce:    nonce,
-		GasFee: GasFee{
-			GasPrice: gasPrice,
-			GasLimit: gasLimit,
-		},
+// UnmarshalBinary for Transaction struct
+func (tx *Transaction) UnmarshalBinary(data []byte) error {
+	if len(data) < 8 { // Check for minimum data length (8 bytes for timestamp)
+		return ErrInvalidDataLength
 	}
 
-	// Hash the contract deployment data
-	txHash := tx.Hash()
+	// Check if the first byte indicates a valid data length
+	if len(data) > 0 && data[0] > 0x7f {
+		// Read timestamp from data (assuming it's at the end)
+		timestamp := int64(binary.BigEndian.Uint64(data[len(data)-8:])) // Last 8 bytes
+		tx.Timestamp = time.Unix(timestamp, 0)                          // Convert to time.Time
 
-	// Sign the transaction hash using the creator's secret key
-	sig, _, err := sign.SignMessage(parameters.DefaultParams, txHash, creator)
-	if err != nil {
-		return nil, err
-	}
-
-	tx.Signature = sig
-
-	return tx, nil
-}
-
-// Hash computes the SHAKE256 hash of a regular transaction
-func (tx *Transaction) Hash() []byte {
-	txData := fmt.Sprintf("%x%x%d%d%d%d", tx.Sender, tx.Receiver, tx.Value, tx.Nonce, tx.GasFee.GasPrice, tx.GasFee.GasLimit)
-	hash := make([]byte, 32) // 32 bytes (256 bits) of output
-	shake := sha3.NewShake256()
-	shake.Write([]byte(txData))
-	shake.Read(hash)
-	return hash
-}
-
-// Hash computes the SHAKE256 hash of a contract deployment transaction
-func (tx *ContractTransaction) Hash() []byte {
-	txData := fmt.Sprintf("%x%s%d%d%d", tx.Creator, tx.Contract, tx.Nonce, tx.GasFee.GasPrice, tx.GasFee.GasLimit)
-	hash := make([]byte, 32) // 32 bytes (256 bits) of output
-	shake := sha3.NewShake256()
-	shake.Write([]byte(txData))
-	shake.Read(hash)
-	return hash
-}
-
-// Verify checks the validity of a transaction by verifying its digital signature
-func (tx *Transaction) Verify() error {
-	txHash := tx.Hash()
-	valid := sign.VerifySignature(parameters.DefaultParams, txHash, tx.Signature, tx.Sender, nil)
-	if !valid {
-		return errors.New("invalid transaction signature")
-	}
-	return nil
-}
-
-// Verify checks the validity of a contract transaction by verifying its digital signature
-func (tx *ContractTransaction) Verify() error {
-	txHash := tx.Hash()
-	valid := sign.VerifySignature(parameters.DefaultParams, txHash, tx.Signature, tx.Creator, nil)
-	if !valid {
-		return errors.New("invalid contract transaction signature")
-	}
-}
-
-// AddTransaction adds a new transaction to the blockchain (ledger)
-func (bc *Blockchain) AddTransaction(tx *Transaction) error {
-	// Verify the transaction before adding it to the ledger
-	err := tx.Verify()
-	if err != nil {
-		return err
-	}
-
-	// Check nonce to prevent double-spending or out-of-order transactions
-	account, ok := bc.accounts[publicKeyToString(tx.Sender)]
-	if !ok || account.Nonce != tx.Nonce {
-		return errors.New("invalid nonce")
-	}
-
-	// Check for sufficient balance after gas fees
-	totalCost := tx.Value + (tx.GasFee.GasPrice * tx.GasFee.GasLimit)
-	if account.Balance < totalCost {
-		return errors.New("insufficient funds")
-	}
-
-	// Deduct balance and increment nonce for the sender
-	account.Balance -= totalCost
-	account.Nonce++
-
-	// Add the verified transaction to the blockchain
-	bc.transactions = append(bc.transactions, tx)
-	return nil
-}
-
-// AddContractTransaction adds a contract deployment to the blockchain
-func (bc *Blockchain) AddContractTransaction(tx *ContractTransaction) error {
-	// Verify the contract transaction before adding it to the blockchain
-	err := tx.Verify()
-	if err != nil {
-		return err
-	}
-
-	// Check nonce to prevent double-spending
-	account, ok := bc.accounts[publicKeyToString(tx.Creator)]
-	if !ok || account.Nonce != tx.Nonce {
-		return errors.New("invalid nonce")
-	}
-
-	// Check for sufficient balance after gas fees
-	totalCost := tx.GasFee.GasPrice * tx.GasFee.GasLimit
-	if account.Balance < totalCost {
-		return errors.New("insufficient funds for contract deployment")
-	}
-
-	// Deploy the contract (we could store contract bytecode or logic)
-	bc.contracts = append(bc.contracts, tx)
-	account.Balance -= totalCost // Deduct the gas fee
-	account.Nonce++
-
-	return nil
-}
-
-// InvokeContract executes a contract's bytecode and updates the state
-func (bc *Blockchain) InvokeContract(contractAddress string, methodName string, args []interface{}) (interface{}, error) {
-	// Here we should find the corresponding contract and execute its bytecode
-	// For simplicity, we're just printing the method call and args
-	for _, contract := range bc.contracts {
-		if contract.Contract == contractAddress {
-			// Placeholder for actual execution logic
-			fmt.Printf("Invoking method %s on contract %s with args: %v\n", methodName, contractAddress, args)
-			return nil, nil // Returning nil as no state changes are implemented yet
+		// Deserialize transaction data
+		tx.inner = &Message{} // Assuming Message implements TxData
+		if err := tx.inner.UnmarshalBinary(data[:len(data)-8]); err != nil {
+			return err
 		}
+	} else {
+		return ErrInvalidDataLength // Handle case for unexpected data format
 	}
-	return nil, errors.New("contract not found")
+
+	return nil
 }
 
-// publicKeyToString converts a public key to a string representation
-func publicKeyToString(pub *sphincs.SPHINCS_PK) string {
-	// Adjust this conversion according to the structure of your SPHINCS public key
-	return hex.EncodeToString(pub.Serialize())
+// Sanity check for transaction signature
+func sanityCheckSignature(v *big.Int, r *big.Int, s *big.Int, maybeProtected bool) error {
+	if isProtectedV(v) && !maybeProtected {
+		return ErrUnexpectedProtection
+	}
+
+	var plainV byte
+	if isProtectedV(v) {
+		chainID := deriveChainId(v).Uint64()
+		plainV = byte(v.Uint64() - 35 - 2*chainID)
+	} else if maybeProtected {
+		plainV = byte(v.Uint64() - 27)
+	} else {
+		plainV = byte(v.Uint64())
+	}
+
+	if !ValidateSignatureValues(plainV, r, s, false) {
+		return ErrInvalidSig
+	}
+
+	return nil
+}
+
+// Helper function to check if the signature is protected
+func isProtectedV(V *big.Int) bool {
+	if V.BitLen() <= 8 {
+		v := V.Uint64()
+		return v != 27 && v != 28 && v != 1 && v != 0
+	}
+	return true
+}
+
+// Protected method checks whether the transaction is replay-protected
+func (tx *Transaction) Protected() bool {
+	switch tx := tx.inner.(type) {
+	case *LegacyTx: // Ensure LegacyTx implements TxData
+		return tx.V != nil && isProtectedV(tx.V)
+	default:
+		return true
+	}
+}
+
+// Derives chain ID from the given value
+func deriveChainId(v *big.Int) *big.Int {
+	// Implement the logic to derive chain ID based on the signature values
+	return big.NewInt(1) // Replace with actual implementation
+}
+
+// Validates signature values
+func ValidateSignatureValues(v byte, r, s *big.Int, requireStrict bool) bool {
+	// Implement the validation logic for signature values
+	return true // Replace with actual implementation
+}
+
+// Sign the transaction using a private key (dummy implementation)
+func (m *Message) Sign(privateKey []byte) error {
+	// Implement the signing logic using the provided private key
+	// For now, just set a dummy signature
+	return nil
+}
+
+// Verify the transaction signature (dummy implementation)
+func (m *Message) Verify() (bool, error) {
+	// Implement the verification logic for the signature
+	return true, nil // Replace with actual implementation
+}
+
+// Display transaction details
+func (m Message) String() string {
+	return fmt.Sprintf("From: %s, To: %s, Nonce: %d, Amount: %s, Gas Limit: %d, Gas Price: %s, Is Fake: %t",
+		m.from.Hex(), m.to.Hex(), m.nonce, m.amount.String(), m.gasLimit, m.gasPrice.String(), m.isFake)
+}
+
+// Additional utility functions
+func (m *Message) UpdateGasPrice(newGasPrice *big.Int) {
+	m.gasPrice = newGasPrice
+}
+
+func (m *Message) SetFake(isFake bool) {
+	m.isFake = isFake
 }
