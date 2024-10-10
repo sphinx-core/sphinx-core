@@ -13,30 +13,41 @@ Sphinx is an open-source, post-quantum secure blockchain layer 1 protocol writte
 To contribute to the project, you need to have Go installed on your system. Follow the steps below to set up your environment.
 
 ### 1. Install Go
-You can install Go by following the official instructions on the Go Installation page.
+You can install Go by following the official instructions on the **[Go Installation page](https://go.dev/doc/install)**.
 
 **For Linux/macOS:**
 
-`wget https://go.dev/dl/go1.XX.X.linux-amd64.tar.gz`
+```bash 
+wget https://go.dev/dl/go1.XX.X.linux-amd64.tar.gz
+```
 
-`sudo tar -C /usr/local -xzf go1.XX.X.linux-amd64.tar.gz`
+```bash
+sudo tar -C /usr/local -xzf go1.XX.X.linux-amd64.tar.gz
+```
 
-`export PATH=$PATH:/usr/local/go/bin`
+```bash
+export PATH=$PATH:/usr/local/go/bin
+```
 
 
 **For Windows, download the installer from here.**
 
 **Verify your Go installation:**
 
-`go version
-`
+```bash
+go version
+```
 
 ### 2. Clone the Repository
 Once Go is set up, clone the repository to your local machine.
 
-`git clone https://github.com/sphinx-core/sphinx-core.git`
+```bash
+git clone https://github.com/sphinx-core/sphinx-core.git
+```
 
-`cd sphinx-core`
+```bash
+cd sphinx-core
+```
 
 ### 3. Fork the Repository
 If you intend to contribute, it is recommended to fork the repository. You can do this by clicking the "Fork" button in the upper-right corner of the repository page.
@@ -44,7 +55,9 @@ If you intend to contribute, it is recommended to fork the repository. You can d
 ### 4. Set Up Your Fork
 Add your fork as a remote:
 
-`git remote add fork https://github.com/<your-username>/sphinx-core.git`
+```bash
+git remote add fork https://github.com/<your-username>/sphinx-core.git
+```
 
 ## Contribution Guidelines
 
@@ -53,12 +66,16 @@ We encourage the community to help improve Sphinx-Core. You can contribute in ma
 ###  Clone and Fork the Repository
 Make sure your local repository is up to date:
 
-`git pull origin main`
+```bash
+git pull origin main
+```
 
 ### Making Changes
 1. Create a new branch for your feature or bug fix:
 
-`git checkout -b feature-name`
+```bash
+git checkout -b feature-name
+```
 
 2. Make the necessary changes in the code. Ensure your code is clean and well-documented.
 3. Test your code locally.
@@ -67,7 +84,9 @@ Make sure your local repository is up to date:
 ### Submitting a Pull Request
 1. Push your branch to your forked repository:
 
-`git push fork feature-name`
+```bash
+git push fork feature-name
+```
 
 2. Create a pull request (PR) to the main repository from your branch on GitHub. Make sure your PR description clearly explains your changes.
 3. Wait for the review process. Be prepared to receive feedback or requests for changes.
@@ -78,7 +97,7 @@ All major proposals for features, upgrades, and changes are documented in the Gi
 
 ## GitHub Wiki Pages
 
-GitHub Wiki Pages is contains of **SIP's (SPHINX IMPLEMENTATION PROTOCOL)** you can join to review, discussions,. or suggest improvements to existing proposals ideas. To contribute just visit to the **[Wikipage](https://github.com/sphinx-core/sphinx-core/wiki)**.
+GitHub Wiki Pages is contains of **SIP's (SPHINX IMPLEMENTATION PROTOCOL)** you can join to review, discussions, or suggest improvements to existing proposals ideas. To contribute just visit to the **[Wikipage](https://github.com/sphinx-core/sphinx-core/wiki)**.
 
 ## Improvement Ideas
 
