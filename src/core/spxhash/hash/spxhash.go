@@ -73,9 +73,8 @@ func (s *SphinxHash) Write(p []byte) (n int, err error) {
 
 // Sum appends the current hash to b and returns the resulting slice.
 func (s *SphinxHash) Sum(b []byte) []byte {
-	hash := s.GetHash(s.data)                      // Compute the hash of the current data
-	checksum := s.generateChecksum(hash)           // Generate checksum
-	return append(b, append(hash, checksum...)...) // Append the hash and checksum to the byte slice
+	hash := s.GetHash(s.data) // Compute the hash of the current data
+	return append(b, hash...) // Append the hash to the provided byte slice
 }
 
 // Size returns the number of bytes in the hash based on the bit size.
@@ -203,19 +202,13 @@ func (s *SphinxHash) GetHash(data []byte) []byte {
 	return hash      // Return the newly computed hash
 }
 
-// generateChecksum generates a checksum for the given hash data.
-func (s *SphinxHash) generateChecksum(data []byte) []byte {
-	// Use SHA-256 to compute a checksum and truncate it to 4 bytes (32 bits)
-	checksum := sha256.Sum256(data) // Compute SHA-256 checksum
-	return checksum[:4]             // Return the first 4 bytes as the checksum
-}
-
-// secureRandomUint64 generates a cryptographically secure random uint64.
+// secureRandomUint64 generates a secure random uint64 value.
 func secureRandomUint64() (uint64, error) {
-	var val uint64                                             // Create a uint64 variable
-	err := binary.Read(rand.Reader, binary.LittleEndian, &val) // Read random bytes into val
+	b := make([]byte, 8)   // Create a byte slice to hold 8 bytes (64 bits)
+	_, err := rand.Read(b) // Read random bytes into the slice
 	if err != nil {
-		return 0, err // Return error if the random number generation fails
+		return 0, err // Return error if random generation fails
 	}
-	return val, nil // Return the random value
+
+	return binary.BigEndian.Uint64(b), nil // Convert the byte slice to uint64 and return
 }
