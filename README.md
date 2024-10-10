@@ -76,9 +76,9 @@ Proposals and Discussions
 
 All major proposals for features, upgrades, and changes are documented in the GitHub Wiki section of the repository. You can find detailed descriptions of proposed features and their technical implementations here:
 
-## Sphinx-Core GitHub Wiki
+## GitHub Wiki Pages
 
-Feel free to join discussions or suggest improvements to existing proposals. Contributions to the **[Wikipage](https://github.com/sphinx-core/sphinx-core/wiki)** are welcome!
+GitHub Wiki Pages is contains of **SIP's (SPHINX IMPLEMENTATION PROTOCOL)** you can join to review, discussions,. or suggest improvements to existing proposals ideas. To contribute just visit to the **[Wikipage](https://github.com/sphinx-core/sphinx-core/wiki)**.
 
 ## Improvement Ideas
 
