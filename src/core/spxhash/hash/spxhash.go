@@ -34,6 +34,7 @@ import (
 )
 
 // SPXHash implementations based on SIP-0001 draft on https://github.com/sphinx-core/sips/wiki/SIP-0001
+// https://www.cryptoplexity.informatik.tu-darmstadt.de/media/crypt/publications_1/fischlinssl-combiners2010.pdf
 // Future  improvement:
 // We on going to replace SHA2-256 (Just place holder) with Lattice-based Hash Function that will combine with SHA3-SHAKE256
 // since the world did known that Lattice problem can resistant against well known quantum-computing algorithm.
