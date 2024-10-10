@@ -97,7 +97,7 @@ All major proposals for features, upgrades, and changes are documented in the Gi
 
 ## GitHub Wiki Pages
 
-GitHub Wiki Pages is contains of **SIP's (SPHINX IMPLEMENTATION PROTOCOL)** you can join to review, discussions, or suggest improvements to existing proposals ideas. To contribute just visit to the **[Wikipage](https://github.com/sphinx-core/sphinx-core/wiki)**.
+GitHub Wiki Pages is contains of **SIP's (SPHINX IMPLEMENTATION PROTOCOL)** you can join to review, discussions, or suggest improvements to existing proposals ideas. To contribute just visit to the **[GitHub Wiki](https://github.com/sphinx-core/sips/wiki).**.
 
 ## Improvement Ideas
 
@@ -107,7 +107,7 @@ Here are some areas where contributions are most welcome:
 2. Testing: Write unit tests, integration tests, or perform manual testing to identify bugs.
 3. Security: Contribute to making Sphinx-Core more secure by reviewing code or proposing post-quantum cryptographic methods.
 4. Performance Optimization: Improve performance and scalability of the Sphinx-Core protocol.
-5. Feature Requests: If you have ideas for new features, open an issue or create a proposal in the **[Wikipage](https://github.com/sphinx-core/sphinx-core/wiki)**.
+5. Feature Requests: If you have ideas for new features, open an issue or create a proposal in the **[GitHub Wiki](https://github.com/sphinx-core/sips/wiki).**.
 
 ##  License
 
