@@ -1,6 +1,4 @@
-# Sphinx-core
-
-## Introduction
+# Introduction
 
 Sphinx-Core is designed to be a highly secure blockchain that incorporates post-quantum cryptographic algorithms. Our interemediated goal is to ensure blockchain security remains robust in the face of emerging threats posed by quantum computing.
 
