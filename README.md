@@ -30,7 +30,7 @@ export PATH=$PATH:/usr/local/go/bin
 ```
 
 
-**For Windows, download the installer from here.**
+For Windows, download the installer from here **[Go Installation page](https://go.dev/doc/install)**.
 
 **Verify your Go installation:**
 
