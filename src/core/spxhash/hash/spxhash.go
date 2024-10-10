@@ -33,8 +33,7 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-// References https://crypto.stackexchange.com/questions/270/guarding-against-cryptanalytic-breakthroughs-combining-multiple-hash-functions/328#328
-// https://stackoverflow.com/questions/5889238/why-is-xor-the-default-way-to-combine-hashes
+// SPXHash implementations based on SIP-0001 draft on https://github.com/sphinx-core/sips/wiki/SIP-0001
 
 // SphinxHash is a structure that encapsulates the combination and hashing logic.
 type SphinxHash struct {
