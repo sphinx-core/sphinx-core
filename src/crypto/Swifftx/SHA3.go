@@ -52,72 +52,33 @@ void Swifftx(int hashbitlen, unsigned char *data, uint64_t databitlen, unsigned 
 import "C"
 import (
 	"fmt"
+	"unsafe"
 )
 
-const SWIFFTX_OUTPUT_BLOCK_SIZE = 65 // Update this if your actual output size is different
+const SWIFFTX_OUTPUT_BLOCK_SIZE = 65 // Change this value according to your actual output size
 
-// Hash function wraps the C Swifftx function for Go usage
+// SwifftxHash wraps the C Swifftx function for Go usage
 func SwifftxHash(hashbitlen int, data []byte) ([]byte, error) {
 	if hashbitlen != 224 && hashbitlen != 256 && hashbitlen != 384 && hashbitlen != 512 {
 		return nil, fmt.Errorf("unsupported hashbitlen: %d", hashbitlen)
 	}
 
-	hashval := make([]byte, SWIFFTX_OUTPUT_BLOCK_SIZE) // Output buffer
+	hashval := make([]byte, SWIFFTX_OUTPUT_BLOCK_SIZE) // Allocate memory for the hash output
 	dataLen := uint64(len(data) * 8)                   // Convert byte length to bit length
 
 	// Convert data to C pointer
-	cData := C.CBytes(data)
-	defer C.free(cData) // Free allocated memory
+	cData := (*C.uchar)(C.CBytes(data))
+	defer C.free(unsafe.Pointer(cData)) // Free allocated memory
 
 	// Convert hashval to C pointer
-	cHashval := C.CBytes(hashval)
-	defer C.free(cHashval) // Free allocated memory
+	cHashval := (*C.uchar)(C.CBytes(hashval))
+	defer C.free(unsafe.Pointer(cHashval)) // Free allocated memory
 
 	// Call the C function
-	C.Swifftx(C.int(hashbitlen), (*C.uchar)(cData), C.uint64_t(dataLen), (*C.uchar)(cHashval))
+	C.Swifftx(C.int(hashbitlen), cData, C.uint64_t(dataLen), cHashval)
 
-	// Copy the result from C to Go's hashval slice
-	copy(hashval, (*(*[SWIFFTX_OUTPUT_BLOCK_SIZE]byte)(cHashval))[:])
+	// Copy the hash value from the C buffer to Go slice
+	hashOutput := C.GoBytes(unsafe.Pointer(cHashval), C.int(SWIFFTX_OUTPUT_BLOCK_SIZE))
 
-	return hashval, nil
-}
-
-// PrintDigestInHexa prints the digest in hexadecimal format
-func PrintDigestInHexa(digest []byte, lengthInBytes int, toIdent bool) string {
-	result := make([]byte, (lengthInBytes*2)+4) // Size to accommodate hex representation
-	numOfWrittenChars := 0
-
-	for i := 0; i < lengthInBytes; i++ {
-		if toIdent {
-			if (i%32) == 0 && i != 0 {
-				numOfWrittenChars += copy(result[numOfWrittenChars:], "\n")
-			} else if (i % 16) == 0 {
-				numOfWrittenChars += copy(result[numOfWrittenChars:], " ")
-			}
-		}
-		numOfWrittenChars += copy(result[numOfWrittenChars:], fmt.Sprintf("%02X", digest[i]))
-	}
-
-	return string(result[:numOfWrittenChars])
-}
-
-// SanityCheck1 tests small input messages for all the digest sizes.
-func SanityCheck1() int {
-	inputMessage := []byte("Hello, world!") // The input message
-	fmt.Printf("The input message is:\n%s\n\n", inputMessage)
-
-	for _, hashSize := range []int{512, 384, 256, 224} {
-		resultingDigest := make([]byte, SWIFFTX_OUTPUT_BLOCK_SIZE) // Buffer to hold the resulting digest
-		hash, err := SwifftxHash(hashSize, inputMessage)
-		if err != nil {
-			fmt.Printf("Failure occurred: %s\n", err)
-			return -1
-		}
-		copy(resultingDigest, hash)
-		fmt.Printf("The resulting digest of size %dbit of the input message is:\n", hashSize)
-		fmt.Println(PrintDigestInHexa(resultingDigest, SWIFFTX_OUTPUT_BLOCK_SIZE, true))
-		fmt.Println()
-	}
-
-	return 0
+	return hashOutput, nil
 }
