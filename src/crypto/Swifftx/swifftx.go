@@ -23,11 +23,11 @@
 package main
 
 /*
-#cgo CFLAGS: -I.           // Include the current directory for headers
-#cgo LDFLAGS: -L. -lSHA3   // Link against the SHA3 library
-#include "SHA3.h"           // Include the SHA3 header
-#include <stdlib.h>         // For C standard library functions
-#include <string.h>         // For string functions
+#cgo CFLAGS: -I.          // Include the current directory for headers
+#cgo LDFLAGS: -L. -lSHA3  // Link against the SHA3 library
+#include "SHA3.h"          // Include the SHA3 header
+#include <stdlib.h>        // For C standard library functions
+#include <string.h>        // For string functions
 */
 import "C"
 import (
