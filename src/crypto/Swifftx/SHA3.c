@@ -17,11 +17,7 @@
 
 
 extern const unsigned char SALT_VALUE[];
-const unsigned char HAIFA_IV_256[] = { 250,  50,  42,  40,  14, 233,  53,  48, 227,  42, 237, 187, 211, 120, 209, 234,
-  27, 144,   4,  61, 243, 244,  29, 247,  37, 162,  70,  11, 231, 196,  53,   6,
- 193, 240,  94, 126, 204, 132, 104,  46, 114,  29,   3, 104, 118, 184, 201,   3,
-  57,  77,  91, 101,  31, 155,  84, 199, 228,  39, 198,  42, 248, 198, 201, 178,
-   8 };
+const unsigned char HAIFA_IV_256[];
 
 // The default salt value.
 // This is the expansion of e (Euler's number) - the 19 digits after 2.71:
