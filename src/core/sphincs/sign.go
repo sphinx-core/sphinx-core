@@ -79,77 +79,98 @@ func (sm *SphincsManager) GenerateKeys(params *parameters.Parameters) (*sphincs.
 }
 
 // SignMessage signs a given message using the secret key
-func (sm *SphincsManager) SignMessage(params *parameters.Parameters, message []byte, sk *sphincs.SPHINCS_SK) (*hashtree.HashTreeNode, error) {
-	// Generate the SPHINCS+ signature
+func (sm *SphincsManager) SignMessage(params *parameters.Parameters, message []byte, sk *sphincs.SPHINCS_SK) (*sphincs.SPHINCS_SIG, *hashtree.HashTreeNode, error) {
+	// Generate the SPHINCS+ signature for the given message using the secret key
 	sig := sphincs.Spx_sign(params, message, sk)
 
-	// Serialize the generated signature into bytes
+	// Serialize the generated signature into a byte array for further processing
 	sigBytes, err := sig.SerializeSignature()
 	if err != nil {
-		return nil, err
+		// Return an error if the serialization process fails
+		return nil, nil, err
 	}
 
-	// Split the serialized signature into 4 equal-sized parts
+	// Split the serialized signature into parts to build a Merkle tree
+	// We divide the signature into 4 equal-sized chunks
 	chunkSize := len(sigBytes) / 4
-	sigParts := make([][]byte, 4)
+	sigParts := make([][]byte, 4) // Initialize an array to hold the 4 signature parts
 	for i := 0; i < 4; i++ {
+		// Calculate the start and end indices for each part of the signature
 		start := i * chunkSize
 		end := start + chunkSize
+		// For the last chunk, ensure we include any remaining bytes
 		if i == 3 {
 			end = len(sigBytes)
 		}
+		// Assign each part of the signature to sigParts
 		sigParts[i] = sigBytes[start:end]
 	}
 
-	// Build a Merkle tree from the signature parts and get the root node
+	// Build a Merkle tree from the signature parts and retrieve the root node
 	merkleRoot, err := buildMerkleTreeFromSignature(sigParts)
 	if err != nil {
-		return nil, err
+		// Return an error if the Merkle tree construction fails
+		return nil, nil, err
 	}
 
-	// Save the signature parts as leaves in LevelDB
+	// Save the leaf nodes (signature parts) into LevelDB in batch mode for performance efficiency
 	if err := hashtree.SaveLeavesBatchToDB(sm.db, sigParts); err != nil {
-		return nil, err
+		// Return an error if saving the leaves to LevelDB fails
+		return nil, nil, err
 	}
 
-	// Prune old leaves if necessary
+	// Optionally prune old leaves from the database to prevent the storage from growing indefinitely
+	// In this example, we keep the last 5 leaves and prune older ones
 	if err := hashtree.PruneOldLeaves(sm.db, 5); err != nil {
-		return nil, err
+		// Return an error if the pruning operation fails
+		return nil, nil, err
 	}
 
-	// Return only the Merkle root as the "signature"
-	return merkleRoot, nil
+	// Return the generated signature and the root node of the Merkle tree
+	return sig, merkleRoot, nil
 }
 
 // VerifySignature verifies if a signature is valid for a given message and public key
-// VerifySignature verifies if a signature is valid for a given message and public key
-func (sm *SphincsManager) VerifySignature(params *parameters.Parameters, message []byte, sigParts [][]byte, pk *sphincs.SPHINCS_PK, expectedRootHash []byte) bool {
-	// Concatenate signature parts back into a single byte slice
-	var sigBytes []byte
-	for _, part := range sigParts {
-		sigBytes = append(sigBytes, part...)
-	}
-
-	// Deserialize the concatenated signature bytes
-	sig, err := sphincs.DeserializeSignature(params, sigBytes)
-	if err != nil {
-		return false
-	}
-
-	// Verify the signature using SPHINCS+
+func (sm *SphincsManager) VerifySignature(params *parameters.Parameters, message []byte, sig *sphincs.SPHINCS_SIG, pk *sphincs.SPHINCS_PK, merkleRoot *hashtree.HashTreeNode) bool {
+	// Verify the SPHINCS+ signature using the message, signature, public key, and parameters
 	isValid := sphincs.Spx_verify(params, message, sig, pk)
 	if !isValid {
+		// If the signature is not valid, return false
 		return false
+	}
+
+	// Serialize the signature to get its byte representation for further processing
+	sigBytes, err := sig.SerializeSignature()
+	if err != nil {
+		// If an error occurs during serialization, return false
+		return false
+	}
+
+	// Split the serialized signature into 4 parts to rebuild the Merkle tree
+	chunkSize := len(sigBytes) / 4 // Calculate the size of each chunk
+	sigParts := make([][]byte, 4)  // Initialize a slice to hold 4 parts of the signature
+	for i := 0; i < 4; i++ {
+		// Calculate the start and end index for each chunk
+		start := i * chunkSize
+		end := start + chunkSize
+		// For the last chunk, ensure it includes any remaining bytes
+		if i == 3 {
+			end = len(sigBytes)
+		}
+		// Assign each part of the signature to sigParts
+		sigParts[i] = sigBytes[start:end]
 	}
 
 	// Rebuild the Merkle tree from the signature parts
 	rebuiltRoot, err := buildMerkleTreeFromSignature(sigParts)
 	if err != nil {
+		// If there is an error while rebuilding the Merkle tree, return false
 		return false
 	}
 
-	// Compare the rebuilt Merkle root hash with the expected root hash
-	return hex.EncodeToString(rebuiltRoot.Hash) == hex.EncodeToString(expectedRootHash)
+	// Compare the hash of the rebuilt Merkle root with the provided Merkle root's hash
+	// Convert both to hexadecimal strings and check if they match
+	return hex.EncodeToString(rebuiltRoot.Hash) == hex.EncodeToString(merkleRoot.Hash)
 }
 
 // Helper functions for key serialization and deserialization
