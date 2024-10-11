@@ -34,7 +34,7 @@ import (
 
 func main() {
 	// Initialize parameters for SHAKE256-robust with N = 32
-	params := parameters.MakeSphincsPlusSHAKE256256fRobust(false)
+	params := parameters.MakeSphincsPlusSHAKE256192fRobust(false)
 
 	// Open LevelDB
 	db, err := leveldb.OpenFile("leaves_db", nil)
