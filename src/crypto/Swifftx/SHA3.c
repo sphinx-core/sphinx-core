@@ -15,6 +15,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+
+const unsigned char SALT_VALUE[] = { ... };
+const unsigned char HAIFA_IV_256[] = { ... };
+
 // The default salt value.
 // This is the expansion of e (Euler's number) - the 19 digits after 2.71:
 // 8281828459045235360.
