@@ -72,6 +72,15 @@ func main() {
 		log.Fatal("Failed to sign message:", err)
 	}
 
+	// Print Merkle Tree root hash and size
+	fmt.Printf("Merkle Tree Root Hash: %x\n", merkleRoot.Hash)
+	fmt.Printf("Size of Merkle Tree Root Hash: %d bytes\n", len(merkleRoot.Hash))
+
+	// Create combined output: data + root hash of signature
+	combinedOutput := append(message, merkleRoot.Hash...) // Combining message and Merkle root
+	fmt.Printf("Combined Output (Data + Root Hash): %x\n", combinedOutput)
+	fmt.Printf("Size of Combined Output: %d bytes\n", len(combinedOutput))
+
 	// Serialize the signature to bytes
 	sigBytes, err := manager.SerializeSignature(sig)
 	if err != nil {
