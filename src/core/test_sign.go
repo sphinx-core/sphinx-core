@@ -55,7 +55,6 @@ func main() {
 		log.Fatal("Failed to serialize SK:", err)
 	}
 	fmt.Printf("Secret Key (SK): %x\n", skBytes)
-	fmt.Printf("Size of Serialized SK: %d bytes\n", len(skBytes))
 
 	// Serialize the public key to bytes
 	pkBytes, err := manager.SerializePK(pk)
@@ -63,7 +62,6 @@ func main() {
 		log.Fatal("Failed to serialize PK:", err)
 	}
 	fmt.Printf("Public Key (PK): %x\n", pkBytes)
-	fmt.Printf("Size of Serialized PK: %d bytes\n", len(pkBytes))
 
 	// Sign a message
 	message := []byte("Hello, world!")
@@ -72,14 +70,12 @@ func main() {
 		log.Fatal("Failed to sign message:", err)
 	}
 
-	// Print Merkle Tree root hash and size
+	// Print Merkle Tree root hash
 	fmt.Printf("Merkle Tree Root Hash: %x\n", merkleRoot.Hash)
-	fmt.Printf("Size of Merkle Tree Root Hash: %d bytes\n", len(merkleRoot.Hash))
 
 	// Create combined output: data + root hash of signature
 	combinedOutput := append(message, merkleRoot.Hash...) // Combining message and Merkle root
 	fmt.Printf("Combined Output (Data + Root Hash): %x\n", combinedOutput)
-	fmt.Printf("Size of Combined Output: %d bytes\n", len(combinedOutput))
 
 	// Serialize the signature to bytes
 	sigBytes, err := manager.SerializeSignature(sig)
@@ -87,11 +83,6 @@ func main() {
 		log.Fatal("Failed to serialize signature:", err)
 	}
 	fmt.Printf("Signature: %x\n", sigBytes)
-	fmt.Printf("Size of Serialized Signature: %d bytes\n", len(sigBytes))
-
-	// Print Merkle Tree root hash and size
-	fmt.Printf("Merkle Tree Root Hash: %x\n", merkleRoot.Hash)
-	fmt.Printf("Size of Merkle Tree Root Hash: %d bytes\n", len(merkleRoot.Hash))
 
 	// Save Merkle root hash to a file
 	err = hashtree.SaveRootHashToFile(merkleRoot, "merkle_root_hash.bin")
@@ -119,16 +110,6 @@ func main() {
 		log.Fatal("Failed to fetch leaf from DB:", err)
 	}
 	fmt.Printf("Fetched Leaf: %x\n", leaf)
-
-	// Call generateRandomData to make it used
-	randomData, err := hashtree.GenerateRandomData(16)
-	if err != nil {
-		log.Fatal("Failed to generate random data:", err)
-	}
-	fmt.Printf("Random Data: %x\n", randomData)
-
-	// Call printRootHash to make it used
-	hashtree.PrintRootHash(merkleRoot)
 
 	// Verify the signature and print the original message
 	isValid := manager.VerifySignature(params, message, sig, pk, merkleRoot)
