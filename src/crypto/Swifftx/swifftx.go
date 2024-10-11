@@ -20,8 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// sha3.go
-package swifftx
+package main
 
 /*
 #cgo CFLAGS: -I.
@@ -70,4 +69,10 @@ func TestHash() {
 		}
 		fmt.Printf("Hash output for size %d: %x\n", size, digest)
 	}
+}
+
+// Main function
+func main() {
+	// Call the test function to run the hash demonstration
+	TestHash()
 }
