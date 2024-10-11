@@ -118,8 +118,8 @@ func (sm *SphincsManager) SignMessage(params *parameters.Parameters, message []b
 	}
 
 	// Optionally prune old leaves from the database to prevent the storage from growing indefinitely
-	// In this example, we keep the last 10 leaves and prune older ones
-	if err := hashtree.PruneOldLeaves(sm.db, 10); err != nil {
+	// In this example, we keep the last 5 leaves and prune older ones
+	if err := hashtree.PruneOldLeaves(sm.db, 5); err != nil {
 		// Return an error if the pruning operation fails
 		return nil, nil, err
 	}
