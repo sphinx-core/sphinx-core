@@ -57,7 +57,7 @@ func Hash(outputSize int, inputMessage []byte) ([]byte, error) {
 }
 
 // Test function to demonstrate hashing
-func TestHash() {
+func swifftxhash() {
 	inputMessage := []byte("Hello, world!")
 	outputSizes := []int{512, 384, 256, 224}
 
@@ -74,5 +74,5 @@ func TestHash() {
 // Main function
 func main() {
 	// Call the test function to run the hash demonstration
-	TestHash()
+	swifftxhash()
 }
