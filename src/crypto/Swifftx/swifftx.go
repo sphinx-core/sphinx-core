@@ -24,7 +24,7 @@ package main
 
 /*
 #cgo CFLAGS: -I.
-#cgo LDFLAGS: -L/Users/kusuma/Desktop/sphinx-core/src/crypto/Swifftx -lSHA3
+#cgo LDFLAGS: -L. -lSHA3
 #include "SHA3.h"
 #include <stdlib.h>
 #include <string.h>
