@@ -61,7 +61,11 @@ git remote add fork https://github.com/<your-username>/sphinx-core.git
 
 ## Contribution Guidelines
 
-We encourage the community to help improve Sphinx-Core. You can contribute in many ways: fixing bugs, writing documentation, implementing new features, or suggesting new ideas.
+We encourage the community to help improve Sphinx-Core. You can contribute in many ways: 
+1. fixing bugs
+2. writing documentation
+3. implementing new features
+4. or suggesting new ideas.
 
 ###  Clone and Fork the Repository
 Make sure your local repository is up to date:
