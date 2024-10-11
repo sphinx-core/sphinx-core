@@ -65,7 +65,6 @@ func (tree *HashTree) Build() error {
 }
 
 // Compute the hash of a given data slice using SHAKE-256
-// Compute the hash of a given data slice using SHAKE-256
 func computeHash(data []byte) []byte {
 	sphinx := spxhash.NewSphinxHash(256, 100) // Set max cache size to 100
 
