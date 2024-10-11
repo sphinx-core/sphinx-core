@@ -27,9 +27,6 @@
 // this size (i.e., this is the size of the resulting hash value).
 #define SWIFFTX_OUTPUT_BLOCK_SIZE 65
 
-extern const unsigned char SALT_VALUE[];
-extern const unsigned char HAIFA_IV_256[];
-
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // HAIFA-related constants portion 1
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -187,7 +184,7 @@ HashReturn SetSalt(hashState *state, BitSequence *salt, unsigned short saltLengt
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
 // The default salt value.
-const DataLength SALT_DATA_LENGTH;
+const DataLength SALT_VALUE;
 
 // This is the initial value we choose. For each digest size m, IV_m is derived from this IV
 // through SWIFFTX compression function, as specified in HAIFA paper.
