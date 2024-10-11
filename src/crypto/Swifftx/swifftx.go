@@ -32,6 +32,7 @@ package main
 import "C"
 import (
 	"fmt"
+	"os"
 	"unsafe"
 )
 
@@ -73,6 +74,10 @@ func swifftxhash() {
 
 // Main function
 func main() {
+	// Automatically set the DYLD_LIBRARY_PATH
+	libraryPath := "/Users/kusuma/Desktop/sphinx-core/src/crypto/Swifftx"
+	os.Setenv("DYLD_LIBRARY_PATH", libraryPath)
+
 	// Call the test function to run the hash demonstration
 	swifftxhash()
 }
