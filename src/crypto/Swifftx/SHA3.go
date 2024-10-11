@@ -58,6 +58,7 @@ import (
 const SWIFFTX_OUTPUT_BLOCK_SIZE = 65 // Change this value according to your actual output size
 
 // SwifftxHash wraps the C Swifftx function for Go usage
+// SwifftxHash wraps the C Swifftx function for Go usage
 func SwifftxHash(hashbitlen int, data []byte) ([]byte, error) {
 	if hashbitlen != 224 && hashbitlen != 256 && hashbitlen != 384 && hashbitlen != 512 {
 		return nil, fmt.Errorf("unsupported hashbitlen: %d", hashbitlen)
@@ -77,8 +78,9 @@ func SwifftxHash(hashbitlen int, data []byte) ([]byte, error) {
 	// Call the C function
 	C.Swifftx(C.int(hashbitlen), cData, C.uint64_t(dataLen), cHashval)
 
-	// Copy the hash value from the C buffer to Go slice
-	hashOutput := C.GoBytes(unsafe.Pointer(cHashval), C.int(SWIFFTX_OUTPUT_BLOCK_SIZE))
+	// Manually create the Go slice from the C buffer
+	hashOutput := make([]byte, SWIFFTX_OUTPUT_BLOCK_SIZE)
+	copy(hashOutput, (*[SWIFFTX_OUTPUT_BLOCK_SIZE]byte)(unsafe.Pointer(cHashval))[:])
 
 	return hashOutput, nil
 }
