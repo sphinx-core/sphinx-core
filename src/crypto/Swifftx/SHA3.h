@@ -187,7 +187,7 @@ HashReturn SetSalt(hashState *state, BitSequence *salt, unsigned short saltLengt
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
 // The default salt value.
-const DataLength SALT_VALUE;
+const DataLength SALT_DATA_LENGTH;
 
 // This is the initial value we choose. For each digest size m, IV_m is derived from this IV
 // through SWIFFTX compression function, as specified in HAIFA paper.
