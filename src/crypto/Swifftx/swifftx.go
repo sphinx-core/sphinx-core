@@ -36,6 +36,9 @@ import (
 	"unsafe"
 )
 
+// cd /Users/kusuma/Desktop/sphinx-core/src/crypto/Swifftx
+// go build -o swifftx swifftx.go./swifftx
+
 const (
 	SWIFFTX_OUTPUT_BLOCK_SIZE = 64 // Adjust this according to your needs
 )
@@ -58,7 +61,7 @@ func Hash(outputSize int, inputMessage []byte) ([]byte, error) {
 }
 
 // Test function to demonstrate hashing
-func swifftxhash() {
+func swifftx() {
 	inputMessage := []byte("Hello, world!")
 	outputSizes := []int{512, 384, 256, 224}
 
@@ -78,6 +81,12 @@ func main() {
 	libraryPath := "/Users/kusuma/Desktop/sphinx-core/src/crypto/Swifftx"
 	os.Setenv("DYLD_LIBRARY_PATH", libraryPath)
 
+	// Ensure the library path is absolute
+	if err := os.Setenv("DYLD_LIBRARY_PATH", libraryPath); err != nil {
+		fmt.Printf("Error setting DYLD_LIBRARY_PATH: %v\n", err)
+		return
+	}
+
 	// Call the test function to run the hash demonstration
-	swifftxhash()
+	swifftx()
 }
