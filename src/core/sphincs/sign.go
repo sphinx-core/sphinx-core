@@ -122,9 +122,21 @@ func (sm *SphincsManager) SignMessage(params *parameters.Parameters, message []b
 }
 
 // VerifySignature verifies if a signature is valid for a given message and public key
+// VerifySignature verifies if a signature is valid for a given message and public key
 func (sm *SphincsManager) VerifySignature(params *parameters.Parameters, message []byte, sigParts [][]byte, pk *sphincs.SPHINCS_PK, expectedRootHash []byte) bool {
-	// First verify the signature using SPHINCS+
-	sig := sphincs.NewSignatureFromParts(sigParts) // Construct signature from parts
+	// Concatenate signature parts back into a single byte slice
+	var sigBytes []byte
+	for _, part := range sigParts {
+		sigBytes = append(sigBytes, part...)
+	}
+
+	// Deserialize the concatenated signature bytes
+	sig, err := sphincs.DeserializeSignature(params, sigBytes)
+	if err != nil {
+		return false
+	}
+
+	// Verify the signature using SPHINCS+
 	isValid := sphincs.Spx_verify(params, message, sig, pk)
 	if !isValid {
 		return false
