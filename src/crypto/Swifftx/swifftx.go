@@ -25,7 +25,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/yourusername/sphinx-core/src/crypto/Swifftx"
+	"github.com/sphinx-core/sphinx-core/src/crypto/Swifftx"
 )
 
 func main() {
