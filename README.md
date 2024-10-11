@@ -101,7 +101,7 @@ All major proposals for features, upgrades, and changes are documented in the **
 
 ## GitHub Wiki Pages
 
-GitHub Wiki Pages is contains of **SIP's (SPHINX IMPLEMENTATION PROPOSALS)** you can join to review, discussions, or suggest improvements to existing proposals ideas. To contribute just visit to the **[GitHub Wiki](https://github.com/sphinx-core/sips/wiki).**
+GitHub Wiki Pages is contains of **SIPS (SPHINX IMPLEMENTATION PROPOSALS)** you can join to review, discussions, or suggest improvements to existing proposals ideas. To contribute just visit to the **[GitHub Wiki](https://github.com/sphinx-core/sips/wiki).**
 
 ## Improvement Ideas
 
