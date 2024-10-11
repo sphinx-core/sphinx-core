@@ -20,43 +20,68 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-package swifftx
+package main
 
 /*
 #cgo CFLAGS: -I.
 #cgo LDFLAGS: -L. -lSHA3
+#include "SHA3.h"
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>  // Include for sprintf
-#include "SHA3.h"
-
-// Function to hash input message using SWIFFTX
-void HashInput(const char *input, int length, char *output) {
-    BitSequence resultingDigest[SWIFFTX_OUTPUT_BLOCK_SIZE] = {0};
-    HashReturn exitCode;
-
-    exitCode = Hash(512, input, length * 8, resultingDigest);  // 512-bit output
-
-    if (exitCode == SUCCESS) {
-        for (int i = 0; i < 64; i++) { // 64 bytes for 512 bits
-            sprintf(output + (i * 2), "%02X", resultingDigest[i]); // Convert to hex
-        }
-    }
-}
 */
 import "C"
 import (
+	"fmt"
+	"os"
 	"unsafe"
 )
 
-func SWIFFTXHash(input string) (string, error) {
-	length := len(input)
-	output := make([]byte, 128) // 64 bytes = 512 bits, each byte represented by 2 hex chars
+const (
+	SWIFFTX_OUTPUT_BLOCK_SIZE = 64 // Adjust according to your needs
+)
 
-	cInput := C.CString(input)
-	defer C.free(unsafe.Pointer(cInput))
+// Hash is a wrapper function that calls the C Hash function.
+func Hash(outputSize int, inputMessage []byte) ([]byte, error) {
+	var resultingDigest [SWIFFTX_OUTPUT_BLOCK_SIZE]C.BitSequence
+	inputLength := C.DataLength(len(inputMessage) * 8) // Length in bits
+	message := C.CBytes(inputMessage)                  // Convert Go slice to C array
+	defer C.free(message)                              // Ensure memory is freed
 
-	C.HashInput(cInput, C.int(length), (*C.char)(unsafe.Pointer(&output[0])))
+	// Call the C Hash function
+	exitCode := C.Hash(C.int(outputSize), (*C.BitSequence)(message), inputLength, &resultingDigest[0])
+	if exitCode != C.SUCCESS {
+		return nil, fmt.Errorf("hashing failed with error code: %d", exitCode)
+	}
 
-	return string(output), nil
+	// Convert the C array to a Go slice
+	digest := C.GoBytes(unsafe.Pointer(&resultingDigest[0]), C.int(outputSize/8))
+	return digest, nil
+}
+
+// Test function to demonstrate hashing
+func swifftx() {
+	inputMessage := []byte("Hello, world!")  // Message to hash
+	outputSizes := []int{512, 384, 256, 224} // Different hash output sizes
+
+	for _, size := range outputSizes {
+		digest, err := Hash(size, inputMessage) // Call the hash function
+		if err != nil {
+			fmt.Println("Error:", err)
+			continue
+		}
+		fmt.Printf("Hash output for size %d: %x\n", size, digest) // Print the hash output
+	}
+}
+
+// Main function
+func main() {
+	// Set the DYLD_LIBRARY_PATH to ensure the dynamic library is found
+	libraryPath := "/Users/kusuma/Desktop/sphinx-core/src/crypto/Swifftx" // Path to the library
+	if err := os.Setenv("DYLD_LIBRARY_PATH", libraryPath); err != nil {
+		fmt.Printf("Error setting DYLD_LIBRARY_PATH: %v\n", err)
+		return
+	}
+
+	// Call the test function to run the hash demonstration
+	swifftx()
 }
