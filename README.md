@@ -6,7 +6,7 @@ We encourage developers, researchers, and blockchain enthusiasts to contribute t
 
 ## What is SPHINX?
 
-Sphinx is an open-source, post-quantum secure blockchain layer 1 protocol written in Go. We believe that every person brings a unique perspective and set of skills, which is why everyone is invited to contribute to this project. Whether you're a developer, researcher, or enthusiast, your input can help us build a resilient, future-proof blockchain infrastructure resistant to quantum attacks. The project is under active development, and we welcome contributions from all walks of life!
+Sphinx is an open-source, post-quantum secure blockchain layer 1 protocol written in Go. We believe that every person brings a unique perspective and set of skills, which is why everyone is invited to contribute to this project. Whether you're a developer, researcher, or enthusiast, your input can help us build a resilient, future-proof blockchain infrastructure resistant to quantum attacks. The project is under active development, and we welcome contributions from all walks of life from arround the world!
 
 ## Getting Started
 
@@ -93,11 +93,11 @@ git push fork feature-name
 
 Proposals and Discussions
 
-All major proposals for features, upgrades, and changes are documented in the GitHub Wiki section of the repository. You can find detailed descriptions of proposed features and their technical implementations here:
+All major proposals for features, upgrades, and changes are documented in the **[GitHub Wiki](https://github.com/sphinx-core/sips/wiki).** section of the repository. You can find detailed descriptions of proposed features and their technical implementations here:
 
 ## GitHub Wiki Pages
 
-GitHub Wiki Pages is contains of **SIP's (SPHINX IMPLEMENTATION PROTOCOL)** you can join to review, discussions, or suggest improvements to existing proposals ideas. To contribute just visit to the **[GitHub Wiki](https://github.com/sphinx-core/sips/wiki).**.
+GitHub Wiki Pages is contains of **SIP's (SPHINX IMPLEMENTATION PROTOCOL)** you can join to review, discussions, or suggest improvements to existing proposals ideas. To contribute just visit to the **[GitHub Wiki](https://github.com/sphinx-core/sips/wiki).**
 
 ## Improvement Ideas
 
@@ -107,7 +107,7 @@ Here are some areas where contributions are most welcome:
 2. Testing: Write unit tests, integration tests, or perform manual testing to identify bugs.
 3. Security: Contribute to making Sphinx-Core more secure by reviewing code or proposing post-quantum cryptographic methods.
 4. Performance Optimization: Improve performance and scalability of the Sphinx-Core protocol.
-5. Feature Requests: If you have ideas for new features, open an issue or create a proposal in the **[GitHub Wiki](https://github.com/sphinx-core/sips/wiki).**.
+5. Feature Requests: If you have ideas for new features, open an issue or create a proposal in the **[GitHub Wiki](https://github.com/sphinx-core/sips/wiki).**
 
 ##  License
 
