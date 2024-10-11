@@ -36,11 +36,8 @@ import (
 	"unsafe"
 )
 
-// cd /Users/kusuma/Desktop/sphinx-core/src/crypto/Swifftx
-// go build -o swifftx swifftx.go./swifftx
-
 const (
-	SWIFFTX_OUTPUT_BLOCK_SIZE = 64 // Adjust this according to your needs
+	SWIFFTX_OUTPUT_BLOCK_SIZE = 64 // Adjust according to your needs
 )
 
 // Hash is a wrapper function that calls the C Hash function.
@@ -50,6 +47,7 @@ func Hash(outputSize int, inputMessage []byte) ([]byte, error) {
 	message := C.CBytes(inputMessage)
 	defer C.free(message)
 
+	// Call the C Hash function
 	exitCode := C.Hash(C.int(outputSize), (*C.BitSequence)(message), inputLength, &resultingDigest[0])
 	if exitCode != C.SUCCESS {
 		return nil, fmt.Errorf("hashing failed with error code: %d", exitCode)
@@ -77,11 +75,8 @@ func swifftx() {
 
 // Main function
 func main() {
-	// Automatically set the DYLD_LIBRARY_PATH
+	// Set the DYLD_LIBRARY_PATH to ensure the dynamic library is found
 	libraryPath := "/Users/kusuma/Desktop/sphinx-core/src/crypto/Swifftx"
-	os.Setenv("DYLD_LIBRARY_PATH", libraryPath)
-
-	// Ensure the library path is absolute
 	if err := os.Setenv("DYLD_LIBRARY_PATH", libraryPath); err != nil {
 		fmt.Printf("Error setting DYLD_LIBRARY_PATH: %v\n", err)
 		return
