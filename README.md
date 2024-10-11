@@ -6,7 +6,7 @@ We encourage developers, researchers, and blockchain enthusiasts to contribute t
 
 ## What is SPHINX?
 
-Sphinx is an open-source, post-quantum secure blockchain layer 1 protocol written in Go. We believe that every person brings a unique perspective and set of skills, which is why everyone is invited to contribute to this project. Whether you're a developer, researcher, or enthusiast, your input can help us build a resilient, future-proof blockchain infrastructure resistant to quantum attacks. The project is under active development, and we welcome contributions from all walks of life from arround the world!
+Sphinx is an open-source, post-quantum secure blockchain layer 1 protocol written in Go. We believe that every person brings a unique perspective and set of skills, which is why everyone is invited to contribute to this project. Whether you're a developer, researcher, or enthusiast, your input can help us build a resilient, future-proof blockchain infrastructure resistant to quantum attacks. The project is under active development, and we welcome contributions from all walks of life!
 
 ## Getting Started
 
