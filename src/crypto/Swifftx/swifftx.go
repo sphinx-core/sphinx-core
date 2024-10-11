@@ -25,11 +25,11 @@ package main
 import (
 	"fmt"
 
-	"github.com/sphinx-core/sphinx-core/src/core/src/crypto/swifftx"
+	"github.com/sphinx-core/sphinx-core/src/crypto/Swifftx" // Adjusted import path
 )
 
 func main() {
-	hash, err := swifftx.Hash(256, []byte("Hello, world!"))
+	hash, err := Swifftx.Hash(256, []byte("Hello, world!"))
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
