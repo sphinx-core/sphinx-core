@@ -37,7 +37,7 @@ import (
 )
 
 const (
-	SWIFFTX_OUTPUT_BLOCK_SIZE = 64 // adjust this according to your needs
+	SWIFFTX_OUTPUT_BLOCK_SIZE = 64 // Adjust this according to your needs
 )
 
 // Hash is a wrapper function that calls the C Hash function.
