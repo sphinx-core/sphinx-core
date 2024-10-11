@@ -65,7 +65,7 @@ func main() {
 
 	// Sign a message
 	message := []byte("Hello, world!")
-	sig, merkleRoot, err := manager.SignMessage(params, message, sk)
+	_, merkleRoot, err := manager.SignMessage(params, message, sk) // Ignore the sig variable
 	if err != nil {
 		log.Fatal("Failed to sign message:", err)
 	}
@@ -73,16 +73,18 @@ func main() {
 	// Print Merkle Tree root hash
 	fmt.Printf("Merkle Tree Root Hash: %x\n", merkleRoot.Hash)
 
-	// Create combined output: data + root hash of signature
-	combinedOutput := append(message, merkleRoot.Hash...) // Combining message and Merkle root
-	fmt.Printf("Combined Output (Data + Root Hash): %x\n", combinedOutput)
+	// Sign the Merkle root hash
+	rootHashSignature, merkleRoot2, err := manager.SignMessage(params, merkleRoot.Hash, sk)
+	if err != nil {
+		log.Fatal("Failed to sign message using Merkle root:", err)
+	}
 
 	// Serialize the signature to bytes
-	sigBytes, err := manager.SerializeSignature(sig)
+	sigBytes, err := manager.SerializeSignature(rootHashSignature)
 	if err != nil {
 		log.Fatal("Failed to serialize signature:", err)
 	}
-	fmt.Printf("Signature: %x\n", sigBytes)
+	fmt.Printf("Signature using Merkle Root: %x\n", sigBytes)
 
 	// Save Merkle root hash to a file
 	err = hashtree.SaveRootHashToFile(merkleRoot, "merkle_root_hash.bin")
@@ -112,7 +114,7 @@ func main() {
 	fmt.Printf("Fetched Leaf: %x\n", leaf)
 
 	// Verify the signature and print the original message
-	isValid := manager.VerifySignature(params, message, sig, pk, merkleRoot)
+	isValid := manager.VerifySignature(params, merkleRoot.Hash, rootHashSignature, pk, merkleRoot2)
 	fmt.Printf("Signature valid: %v\n", isValid)
 	if isValid {
 		fmt.Printf("Original Message: %s\n", message)
