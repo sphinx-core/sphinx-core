@@ -72,16 +72,8 @@ func main() {
 		log.Fatal("Failed to sign message:", err)
 	}
 
-	// Serialize the signature to bytes
-	sigBytes, err := manager.SerializeSignature(sig)
-	if err != nil {
-		log.Fatal("Failed to serialize signature:", err)
-	}
-	fmt.Printf("Signature: %x\n", sigBytes)
-	fmt.Printf("Size of Serialized Signature: %d bytes\n", len(sigBytes))
-
-	// Print Merkle Tree root hash and size
-	fmt.Printf("Merkle Tree Root Hash: %x\n", merkleRoot.Hash)
+	// Instead of using the full signature, use the Merkle Root as the "signature"
+	fmt.Printf("Merkle Tree Root Hash (Signature): %x\n", merkleRoot.Hash)
 	fmt.Printf("Size of Merkle Tree Root Hash: %d bytes\n", len(merkleRoot.Hash))
 
 	// Save Merkle root hash to a file
@@ -97,33 +89,9 @@ func main() {
 	}
 	fmt.Printf("Loaded Merkle Tree Root Hash: %x\n", loadedHash)
 
-	// Save leaves to LevelDB
-	leaves := [][]byte{sigBytes} // Example usage
-	err = hashtree.SaveLeavesToDB(db, leaves)
-	if err != nil {
-		log.Fatal("Failed to save leaves to DB:", err)
-	}
-
-	// Fetch a leaf from LevelDB
-	leaf, err := hashtree.FetchLeafFromDB(db, "leaf-0")
-	if err != nil {
-		log.Fatal("Failed to fetch leaf from DB:", err)
-	}
-	fmt.Printf("Fetched Leaf: %x\n", leaf)
-
-	// Call generateRandomData to make it used
-	randomData, err := hashtree.GenerateRandomData(16)
-	if err != nil {
-		log.Fatal("Failed to generate random data:", err)
-	}
-	fmt.Printf("Random Data: %x\n", randomData)
-
-	// Call printRootHash to make it used
-	hashtree.PrintRootHash(merkleRoot)
-
-	// Verify the signature and print the original message
-	isValid := manager.VerifySignature(params, message, sig, pk, merkleRoot)
-	fmt.Printf("Signature valid: %v\n", isValid)
+	// Verify the message using the Merkle root as the "signature"
+	isValid := manager.VerifySignatureWithRoot(params, message, loadedHash, pk)
+	fmt.Printf("Signature (Merkle Root) valid: %v\n", isValid)
 	if isValid {
 		fmt.Printf("Original Message: %s\n", message)
 	}
