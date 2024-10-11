@@ -33,6 +33,8 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
+// SIPS-0002 https://github.com/sphinx-core/sips/wiki/SIPS-0002
+
 var maxFileSize = 1 << 30 // 1 GiB max file size for memory mapping
 
 // HashTreeNode represents a node in the hash tree

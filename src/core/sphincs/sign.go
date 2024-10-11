@@ -31,6 +31,8 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
+// SIPS-0002 https://github.com/sphinx-core/sips/wiki/SIPS-0002
+
 // KeyManager interface defines methods for key management and cryptographic operations
 type KeyManager interface {
 	// GenerateKeys generates a new pair of secret and public keys based on the provided parameters
