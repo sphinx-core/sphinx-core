@@ -23,11 +23,11 @@
 package main
 
 /*
-#cgo CFLAGS: -I.
-#cgo LDFLAGS: -L. -lSHA3
-#include "SHA3.h"
-#include <stdlib.h>
-#include <string.h>
+#cgo CFLAGS: -I.           // Include the current directory for headers
+#cgo LDFLAGS: -L. -lSHA3   // Link against the SHA3 library
+#include "SHA3.h"           // Include the SHA3 header
+#include <stdlib.h>         // For C standard library functions
+#include <string.h>         // For string functions
 */
 import "C"
 import (
@@ -43,9 +43,9 @@ const (
 // Hash is a wrapper function that calls the C Hash function.
 func Hash(outputSize int, inputMessage []byte) ([]byte, error) {
 	var resultingDigest [SWIFFTX_OUTPUT_BLOCK_SIZE]C.BitSequence
-	inputLength := C.DataLength(len(inputMessage) * 8)
-	message := C.CBytes(inputMessage)
-	defer C.free(message)
+	inputLength := C.DataLength(len(inputMessage) * 8) // Length in bits
+	message := C.CBytes(inputMessage)                  // Convert Go slice to C array
+	defer C.free(message)                              // Ensure memory is freed
 
 	// Call the C Hash function
 	exitCode := C.Hash(C.int(outputSize), (*C.BitSequence)(message), inputLength, &resultingDigest[0])
@@ -60,23 +60,23 @@ func Hash(outputSize int, inputMessage []byte) ([]byte, error) {
 
 // Test function to demonstrate hashing
 func swifftx() {
-	inputMessage := []byte("Hello, world!")
-	outputSizes := []int{512, 384, 256, 224}
+	inputMessage := []byte("Hello, world!")  // Message to hash
+	outputSizes := []int{512, 384, 256, 224} // Different hash output sizes
 
 	for _, size := range outputSizes {
-		digest, err := Hash(size, inputMessage)
+		digest, err := Hash(size, inputMessage) // Call the hash function
 		if err != nil {
 			fmt.Println("Error:", err)
 			continue
 		}
-		fmt.Printf("Hash output for size %d: %x\n", size, digest)
+		fmt.Printf("Hash output for size %d: %x\n", size, digest) // Print the hash output
 	}
 }
 
 // Main function
 func main() {
 	// Set the DYLD_LIBRARY_PATH to ensure the dynamic library is found
-	libraryPath := "/Users/kusuma/Desktop/sphinx-core/src/crypto/Swifftx"
+	libraryPath := "/Users/kusuma/Desktop/sphinx-core/src/crypto/Swifftx" // Path to the library
 	if err := os.Setenv("DYLD_LIBRARY_PATH", libraryPath); err != nil {
 		fmt.Printf("Error setting DYLD_LIBRARY_PATH: %v\n", err)
 		return
