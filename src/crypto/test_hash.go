@@ -34,7 +34,7 @@ func main() {
 	input := []byte("Hello, SWIFFTX!")
 
 	// Specify the desired output size for the hash (e.g., 512 bits)
-	outputSize := 512
+	outputSize := 256
 
 	// Call the Hash function from the swifftx package
 	hash, err := swifftx.Hash(outputSize, input)
