@@ -20,12 +20,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-package swifftx
+package main
 
 import (
 	"fmt"
 
-	"github.com/sphinx-core/sphinx-core/src/crypto/Swifftx" // Adjusted import path
+	"github.com/yourusername/sphinx-core/src/crypto/Swifftx"
 )
 
 func main() {
