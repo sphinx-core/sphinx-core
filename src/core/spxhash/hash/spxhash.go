@@ -117,11 +117,11 @@ func (s *SphinxHash) hashData(data []byte) []byte {
 	// Generate SHA2 and SHAKE hashes based on the bit size
 	switch s.bitSize {
 	case 128:
-		shake := sha3.NewShake128()   // Create a new SHAKE128 instance
-		shake.Write(data)             // Write the input data to the SHAKE instance
-		shakeHash := make([]byte, 16) // 128 bits = 16 bytes
-		shake.Read(shakeHash)         // Read the generated hash
-		return shakeHash              // Return the 128-bit hash
+		shake := sha3.NewShake256()   // Use SHAKE256
+		shake.Write(data)             // Write the input data to the SHAKE256 instance
+		shakeHash := make([]byte, 32) // 256 bits = 32 bytes, as SHAKE256 supports variable output size
+		shake.Read(shakeHash)         // Read the generated 256-bit hash
+		return shakeHash              // Return the 256-bit hash
 	case 256:
 		hash := sha256.Sum256(data)                      // Compute the SHA-256 hash
 		sha2Hash = hash[:]                               // Convert the array to a slice
@@ -135,8 +135,8 @@ func (s *SphinxHash) hashData(data []byte) []byte {
 		sha2Hash = hash[:]                               // Convert the array to a slice
 		return s.sphinxHash(sha2Hash, sha2Hash, prime64) // Combine the hash
 	default:
-		shake := sha3.NewShake256()   // Create a new SHAKE256 instance
-		shake.Write(data)             // Write the input data to the SHAKE instance
+		shake := sha3.NewShake256()   // Use SHAKE256 as the fallback case as well
+		shake.Write(data)             // Write the input data to the SHAKE256 instance
 		shakeHash := make([]byte, 32) // 256 bits = 32 bytes
 		shake.Read(shakeHash)         // Read the generated hash
 		return shakeHash              // Return the 256-bit hash
