@@ -24,15 +24,22 @@ package main
 
 import (
 	"fmt"
+	"log"
 
-	"github.com/sphinx-core/sphinx-core/src/crypto/Swifftx"
+	Swifftx "github.com/sphinx-core/sphinx-core/src/crypto/Swifftx"
 )
 
 func main() {
-	hash, err := Swifftx.Hash(256, []byte("Hello, world!"))
+	// Test data
+	data := []byte("Hello, world!") // The data you want to hash
+	hashbitlen := 256               // Choose a hash length (224, 256, 384, or 512)
+
+	// Call the SwifftxHash function
+	hashval, err := Swifftx.SwifftxHash(hashbitlen, data)
 	if err != nil {
-		fmt.Println("Error:", err)
-		return
+		log.Fatalf("Error hashing data: %v", err)
 	}
-	fmt.Printf("Hash output: %x\n", hash)
+
+	// Print the resulting hash value
+	fmt.Printf("Hash value: %x\n", hashval[:Swifftx.SWIFFTX_OUTPUT_BLOCK_SIZE]) // Print the hash as hex
 }

@@ -54,6 +54,8 @@ import (
 	"fmt"
 )
 
+const SWIFFTX_OUTPUT_BLOCK_SIZE = 65 // Change this value according to your actual output size
+
 // Hash function wraps the C Hash function for Go usage
 func SwifftxHash(hashbitlen int, data []byte) ([]byte, error) {
 	if hashbitlen != 224 && hashbitlen != 256 && hashbitlen != 384 && hashbitlen != 512 {
