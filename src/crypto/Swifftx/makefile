@@ -14,7 +14,11 @@ sha3: Tester.c $(SHA3_OBJS)
 # Compile the Go program linking with the C object files
 swifftx:
 	@if [ -f sha3.go ]; then \
-		go build -o swifftx sha3.go $(SHA3_OBJS); \
+		go build -o swifftx sha3.go; \
+		if [ $$? -ne 0 ]; then \
+			echo "Build failed!"; \
+			exit 1; \
+		fi; \
 	else \
 		echo "sha3.go not found!"; \
 		exit 1; \
