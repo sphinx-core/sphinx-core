@@ -24,50 +24,63 @@ package swifftx
 
 /*
 #cgo CFLAGS: -I.
-#include "swifftx.h"
+#include "SHA3.h"
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
 
-// Wrapper function to call ComputeSingleSWIFFTX in Go
-void SwifftxHashWrapper(unsigned char input[SWIFFTX_INPUT_BLOCK_SIZE], unsigned char output[SWIFFTX_OUTPUT_BLOCK_SIZE], bool doSmooth) {
-    ComputeSingleSWIFFTX(input, output, doSmooth);
+void Swifftx(int hashbitlen, unsigned char *data, uint64_t databitlen, unsigned char *hashval) {
+    hashState state;
+    HashReturn result;
+
+    result = Init(&state, hashbitlen);
+    if (result != SUCCESS) {
+        return; // Handle error appropriately in production code
+    }
+
+    result = Update(&state, data, databitlen);
+    if (result != SUCCESS) {
+        return; // Handle error appropriately in production code
+    }
+
+    result = Final(&state, hashval);
+    if (result != SUCCESS) {
+        return; // Handle error appropriately in production code
+    }
 }
 */
 import "C"
 import (
-	"errors"
+	"fmt"
 	"unsafe"
 )
 
-// Define constants that align with the C header values
-const (
-	SWIFFTX_INPUT_BLOCK_SIZE  = 256 // 256 bytes (2048 bits)
-	SWIFFTX_OUTPUT_BLOCK_SIZE = 64  // 64 bytes (512 bits)
-)
+const SWIFFTX_OUTPUT_BLOCK_SIZE = 65 // Change this value according to your actual output size
 
-// SwifftxHash performs the SWIFFTX hash operation on input data
-func SwifftxHash(input []byte, doSmooth bool) ([]byte, error) {
-	if len(input) != SWIFFTX_INPUT_BLOCK_SIZE {
-		return nil, errors.New("input must be exactly 256 bytes")
+// SwifftxHash wraps the C Swifftx function for Go usage
+// SwifftxHash wraps the C Swifftx function for Go usage
+func SwifftxHash(hashbitlen int, data []byte) ([]byte, error) {
+	if hashbitlen != 224 && hashbitlen != 256 && hashbitlen != 384 && hashbitlen != 512 {
+		return nil, fmt.Errorf("unsupported hashbitlen: %d", hashbitlen)
 	}
 
-	// Prepare output buffer
-	output := make([]byte, SWIFFTX_OUTPUT_BLOCK_SIZE)
+	hashval := make([]byte, SWIFFTX_OUTPUT_BLOCK_SIZE) // Allocate memory for the hash output
+	dataLen := uint64(len(data) * 8)                   // Convert byte length to bit length
 
-	// Convert Go slice to C array (for input and output)
-	cInput := (*C.uchar)(C.CBytes(input))
-	defer C.free(unsafe.Pointer(cInput)) // Free the C memory when done
+	// Convert data to C pointer
+	cData := (*C.uchar)(C.CBytes(data))
+	defer C.free(unsafe.Pointer(cData)) // Free allocated memory
 
-	cOutput := (*C.uchar)(C.CBytes(output))
-	defer C.free(unsafe.Pointer(cOutput))
+	// Convert hashval to C pointer
+	cHashval := (*C.uchar)(C.CBytes(hashval))
+	defer C.free(unsafe.Pointer(cHashval)) // Free allocated memory
 
-	// Call the wrapper function to invoke SWIFFTX hashing
-	C.SwifftxHashWrapper(cInput, cOutput, C.bool(doSmooth))
+	// Call the C function
+	C.Swifftx(C.int(hashbitlen), cData, C.uint64_t(dataLen), cHashval)
 
-	// Copy result from C output array to Go slice
+	// Manually create the Go slice from the C buffer
 	hashOutput := make([]byte, SWIFFTX_OUTPUT_BLOCK_SIZE)
-	copy(hashOutput, C.GoBytes(unsafe.Pointer(cOutput), C.int(SWIFFTX_OUTPUT_BLOCK_SIZE)))
+	copy(hashOutput, (*[SWIFFTX_OUTPUT_BLOCK_SIZE]byte)(unsafe.Pointer(cHashval))[:])
 
 	return hashOutput, nil
 }
