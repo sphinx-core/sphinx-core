@@ -27,43 +27,144 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/binary"
-	"hash/fnv"
 	"sync"
 
+	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/sha3"
 )
 
-// SPXHash implementations based on SIP-0001 draft on https://github.com/sphinx-core/sips/wiki/SIP-0001
-// https://www.cryptoplexity.informatik.tu-darmstadt.de/media/crypt/publications_1/fischlinssl-combiners2010.pdf
-// Future  improvement:
-// We on going to replace SHA2-256 (Just place holder) with Lattice-based Hash Function that will combine with SHA3-SHAKE256
-// since the world did known that Lattice problem can resistant against well known quantum-computing algorithm.
+// LRUCache is a struct for the LRU cache implementation.
+type LRUCache struct {
+	capacity int
+	mu       sync.Mutex
+	cache    map[uint64]*Node
+	head     *Node
+	tail     *Node
+}
 
-// SphinxHash is a structure that encapsulates the combination and hashing logic.
+// Node is a doubly linked list node for the LRU cache.
+type Node struct {
+	key   uint64
+	value []byte
+	prev  *Node
+	next  *Node
+}
+
+// NewLRUCache initializes a new LRU cache.
+func NewLRUCache(capacity int) *LRUCache {
+	return &LRUCache{
+		capacity: capacity,
+		cache:    make(map[uint64]*Node),
+	}
+}
+
+// Get retrieves a value from the cache.
+func (l *LRUCache) Get(key uint64) ([]byte, bool) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	if node, found := l.cache[key]; found {
+		l.moveToFront(node)
+		return node.value, true
+	}
+	return nil, false
+}
+
+// Put inserts a value into the cache.
+func (l *LRUCache) Put(key uint64, value []byte) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	if node, found := l.cache[key]; found {
+		node.value = value
+		l.moveToFront(node)
+		return
+	}
+
+	node := &Node{key: key, value: value}
+	l.cache[key] = node
+	if l.head == nil {
+		l.head = node
+		l.tail = node
+	} else {
+		node.next = l.head
+		l.head.prev = node
+		l.head = node
+	}
+
+	if len(l.cache) > l.capacity {
+		l.evict()
+	}
+}
+
+// evict removes the least recently used item from the cache.
+func (l *LRUCache) evict() {
+	if l.tail == nil {
+		return
+	}
+	delete(l.cache, l.tail.key)
+	l.tail = l.tail.prev
+	if l.tail != nil {
+		l.tail.next = nil
+	}
+}
+
+// moveToFront moves a node to the front of the linked list.
+func (l *LRUCache) moveToFront(node *Node) {
+	if node == l.head {
+		return
+	}
+	if node.prev != nil {
+		node.prev.next = node.next
+	}
+	if node.next != nil {
+		node.next.prev = node.prev
+	}
+	if node == l.tail {
+		l.tail = node.prev
+	}
+	node.prev = nil
+	node.next = l.head
+	l.head.prev = node
+	l.head = node
+}
+
+// SphinxHash implements hashing based on SIP-0001 draft.
 type SphinxHash struct {
-	bitSize      int               // Specifies the bit size of the hash (128, 256, 384, 512)
-	data         []byte            // Holds the input data to be hashed
-	cache        map[uint64][]byte // Cache to store previously computed hashes
-	cacheKeys    []uint64          // Cache keys for eviction tracking
-	mutex        sync.Mutex        // Mutex to protect access to the cache
-	maxCacheSize int               // Maximum cache size
+	bitSize      int       // Specifies the bit size of the hash (128, 256, 384, 512)
+	data         []byte    // Holds the input data to be hashed
+	salt         []byte    // Salt for hashing
+	cache        *LRUCache // Cache to store previously computed hashes
+	maxCacheSize int       // Maximum cache size
 }
 
 // Define prime constants for hash calculations.
 const (
-	prime32 = 0x9e3779b9         // Example prime constant for 32-bit hash
-	prime64 = 0x9e3779b97f4a7c15 // Example prime constant for 64-bit hash
+	prime32    = 0x9e3779b9         // Example prime constant for 32-bit hash
+	prime64    = 0x9e3779b97f4a7c15 // Example prime constant for 64-bit hash
+	saltSize   = 16                 // Size of salt in bytes
+	iterations = 25000              // PBKDF2 iterations
 )
 
 // NewSphinxHash creates a new SphinxHash with a specific bit size for the hash.
 func NewSphinxHash(bitSize int, maxCacheSize int) *SphinxHash {
 	return &SphinxHash{
 		bitSize:      bitSize,
-		data:         nil,                             // Initialize data to nil
-		cache:        make(map[uint64][]byte),         // Initialize cache
-		cacheKeys:    make([]uint64, 0, maxCacheSize), // Initialize keys slice
-		maxCacheSize: maxCacheSize,                    // Set maximum cache size
+		data:         nil,
+		salt:         generateRandomSalt(),      // Generate random salt
+		cache:        NewLRUCache(maxCacheSize), // Initialize LRU cache
+		maxCacheSize: maxCacheSize,              // Set maximum cache size
 	}
+}
+
+// generateRandomSalt creates a new random salt.
+func generateRandomSalt() []byte {
+	salt := make([]byte, saltSize)
+	_, err := rand.Read(salt)
+	if err != nil {
+		panic("failed to generate random salt") // Panic if random salt generation fails
+	}
+	return salt
 }
 
 // Write adds data to the hash.
@@ -114,29 +215,33 @@ func (s *SphinxHash) BlockSize() int {
 func (s *SphinxHash) hashData(data []byte) []byte {
 	var sha2Hash []byte
 
+	// Combine data with salt for PBKDF2
+	combined := append(data, s.salt...)                                      // Combine data and salt
+	stretchedKey := pbkdf2.Key(combined, s.salt, iterations, 64, sha512.New) // Key stretching with PBKDF2
+
 	// Generate SHA2 and SHAKE hashes based on the bit size
 	switch s.bitSize {
 	case 128:
-		shake := sha3.NewShake256()   // Use SHAKE256
-		shake.Write(data)             // Write the input data to the SHAKE256 instance
-		shakeHash := make([]byte, 32) // 256 bits = 32 bytes, as SHAKE256 supports variable output size
-		shake.Read(shakeHash)         // Read the generated 256-bit hash
-		return shakeHash              // Return the 256-bit hash
+		shake := sha3.NewShake256()
+		shake.Write(stretchedKey)     // Use stretched key
+		shakeHash := make([]byte, 32) // 256 bits = 32 bytes
+		shake.Read(shakeHash)
+		return shakeHash
 	case 256:
-		hash := sha256.Sum256(data)                      // Compute the SHA-256 hash
+		hash := sha256.Sum256(stretchedKey)              // Compute the SHA-256 hash
 		sha2Hash = hash[:]                               // Convert the array to a slice
 		return s.sphinxHash(sha2Hash, sha2Hash, prime32) // Combine the hash
 	case 384:
-		hash := sha512.Sum384(data)                      // Compute the SHA-384 hash
+		hash := sha512.Sum384(stretchedKey)              // Compute the SHA-384 hash
 		sha2Hash = hash[:]                               // Convert the array to a slice
 		return s.sphinxHash(sha2Hash, sha2Hash, prime64) // Combine the hash
 	case 512:
-		hash := sha512.Sum512(data)                      // Compute the SHA-512 hash
+		hash := sha512.Sum512(stretchedKey)              // Compute the SHA-512 hash
 		sha2Hash = hash[:]                               // Convert the array to a slice
 		return s.sphinxHash(sha2Hash, sha2Hash, prime64) // Combine the hash
 	default:
 		shake := sha3.NewShake256()   // Use SHAKE256 as the fallback case as well
-		shake.Write(data)             // Write the input data to the SHAKE256 instance
+		shake.Write(stretchedKey)     // Write the input data to the SHAKE256 instance
 		shakeHash := make([]byte, 32) // 256 bits = 32 bytes
 		shake.Read(shakeHash)         // Read the generated hash
 		return shakeHash              // Return the 256-bit hash
@@ -154,62 +259,41 @@ func (s *SphinxHash) sphinxHash(hash1, hash2 []byte, primeConstant uint64) []byt
 		panic("failed to generate random factor") // Panic if random factor generation fails
 	}
 
-	sphinxHash := make([]byte, len(hash1)) // Create a slice for the final combined hash
+	sphinxHash := make([]byte, len(hash1)) // Initialize the SphinxHash output
 
-	// Iterate over each byte of the input hashes and combine them using structured combinations.
-	for i := 0; i < len(hash1); i++ {
-		h1 := uint64(hash1[i]) // Convert the byte from hash1 to uint64
-		h2 := uint64(hash2[i]) // Convert the byte from hash2 to uint64
-
-		// Structured combination formula:
-		// combined = (h1 * 3 + h2 + randomFactor) ^ primeConstant
-		combined := (h1*3 + h2 + randomFactor) ^ primeConstant // Combine and apply the prime constant
-		sphinxHash[i] = byte(combined)                         // Store the combined result as a byte
+	for i := range hash1 {
+		// Combine bytes from both hash values using XOR with a shifted random factor
+		sphinxHash[i] = hash1[i] ^ hash2[i] ^ byte(randomFactor>>uint(i%64))
 	}
 
-	return sphinxHash // Return the final combined hash
+	// Apply a prime constant to further manipulate the final hash
+	for i := 0; i < len(sphinxHash)/8; i++ {
+		offset := i * 8
+		binary.LittleEndian.PutUint64(sphinxHash[offset:offset+8], binary.LittleEndian.Uint64(sphinxHash[offset:offset+8])+primeConstant)
+	}
+
+	return sphinxHash // Return the combined SphinxHash
 }
 
-// GetHash generates the hash for the given data, using cache for previously computed results.
-func (s *SphinxHash) GetHash(data []byte) []byte {
-	// Create a unique hash key for the cache based on the input data
-	hashKey := fnv.New64a()     // Create a new FNV-1a 64-bit hash
-	hashKey.Write(data)         // Write data to the hash function
-	cacheKey := hashKey.Sum64() // Get the 64-bit hash as cache key
-
-	s.mutex.Lock() // Lock the mutex to protect access to the cache
-	if cachedHash, exists := s.cache[cacheKey]; exists {
-		s.mutex.Unlock()  // Unlock the mutex if we found the cached hash
-		return cachedHash // Return the cached hash
-	}
-	s.mutex.Unlock() // Unlock the mutex if cache miss
-
-	// If not found in cache, compute the hash
-	hash := s.hashData(data)
-
-	// Store the computed hash in cache
-	s.mutex.Lock() // Lock the mutex again to write to cache
-	s.cache[cacheKey] = hash
-	s.cacheKeys = append(s.cacheKeys, cacheKey) // Add the new key to cache keys
-
-	// Evict the oldest cache entry if the cache exceeds max size
-	if len(s.cacheKeys) > s.maxCacheSize {
-		oldestKey := s.cacheKeys[0]   // Get the oldest key
-		delete(s.cache, oldestKey)    // Remove it from the cache
-		s.cacheKeys = s.cacheKeys[1:] // Remove the oldest key from keys slice
-	}
-
-	s.mutex.Unlock() // Unlock the mutex after updating the cache
-	return hash      // Return the newly computed hash
-}
-
-// secureRandomUint64 generates a secure random uint64 value.
+// secureRandomUint64 generates a secure random uint64.
 func secureRandomUint64() (uint64, error) {
-	b := make([]byte, 8)   // Create a byte slice to hold 8 bytes (64 bits)
-	_, err := rand.Read(b) // Read random bytes into the slice
+	var b [8]byte
+	_, err := rand.Read(b[:]) // Read 8 random bytes
 	if err != nil {
-		return 0, err // Return error if random generation fails
+		return 0, err // Return error if random read fails
+	}
+	return binary.LittleEndian.Uint64(b[:]), nil // Convert the bytes to uint64
+}
+
+// GetHash retrieves or calculates the hash of the given data.
+func (s *SphinxHash) GetHash(data []byte) []byte {
+	hashKey := binary.LittleEndian.Uint64(data[:8]) // Generate a unique key for caching
+	if cachedValue, found := s.cache.Get(hashKey); found {
+		return cachedValue // Return cached value if found
 	}
 
-	return binary.BigEndian.Uint64(b), nil // Convert the byte slice to uint64 and return
+	hash := s.hashData(data)   // Calculate the hash if not found in cache
+	s.cache.Put(hashKey, hash) // Store the calculated hash in the cache
+
+	return hash // Return the calculated hash
 }
