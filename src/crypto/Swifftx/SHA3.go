@@ -24,7 +24,7 @@ package swifftx
 
 /*
 #cgo CFLAGS: -I.
-#cgo LDFLAGS: /Users/kusuma/Desktop/sphinx-core/src/crypto/swifftx/SWIFFTX.o /Users/kusuma/Desktop/sphinx-core/src/crypto/swifftx/SHA3.os
+#cgo LDFLAGS: SWIFFTX.o SHA3.o
 #include "SWIFFTX.h"
 #include "SHA3.h"
 #include <stdlib.h>
