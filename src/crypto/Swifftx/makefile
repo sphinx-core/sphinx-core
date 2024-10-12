@@ -1,8 +1,8 @@
-CC=gcc
-OPT=-funroll-loops
+CC = gcc
+OPT = -funroll-loops
 
 # Specify object files
-SHA3_OBJS=SHA3.o SWIFFTX.o
+SHA3_OBJS = SHA3.o SWIFFTX.o
 
 # Default target
 all: sha3 swifftx
