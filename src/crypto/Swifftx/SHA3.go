@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-package swifftx
+package main
 
 /*
 #cgo CFLAGS: -I.
@@ -84,4 +84,20 @@ func SwifftxHash(hashbitlen int, data []byte) ([]byte, error) {
 	copy(hashOutput, (*[SWIFFTX_OUTPUT_BLOCK_SIZE]byte)(unsafe.Pointer(cHashval))[:])
 
 	return hashOutput, nil
+}
+
+func main() {
+	// Sample data to hash
+	data := []byte("Hello, SWIFFTX!")
+	hashBitLen := 256 // Choose the desired hash length (224, 256, 384, 512)
+
+	// Call the SwifftxHash function
+	hash, err := SwifftxHash(hashBitLen, data)
+	if err != nil {
+		fmt.Printf("Error generating hash: %v\n", err)
+		return
+	}
+
+	// Print the hash output in hex format
+	fmt.Printf("Hash (bit length %d): %x\n", hashBitLen, hash)
 }
