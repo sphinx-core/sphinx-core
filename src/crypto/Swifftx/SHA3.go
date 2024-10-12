@@ -23,8 +23,8 @@
 package swifftx
 
 /*
-#cgo CFLAGS: -I.  // Include the current directory for headers
-#cgo LDFLAGS: -L. -lSWIFFTX -lSHA3  // Link the object files if needed
+#cgo CFLAGS: -I.
+#cgo LDFLAGS: -L. -lSWIFFTX -lSHA3
 #include "SWIFFTX.h"
 #include "SHA3.h"
 #include <stdlib.h>
@@ -59,7 +59,6 @@ import (
 
 const SWIFFTX_OUTPUT_BLOCK_SIZE = 65 // Change this value according to your actual output size
 
-// SwifftxHash wraps the C Swifftx function for Go usage
 // SwifftxHash wraps the C Swifftx function for Go usage
 func SwifftxHash(hashbitlen int, data []byte) ([]byte, error) {
 	if hashbitlen != 224 && hashbitlen != 256 && hashbitlen != 384 && hashbitlen != 512 {
