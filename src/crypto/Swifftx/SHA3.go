@@ -23,8 +23,8 @@
 package swifftx
 
 /*
-#cgo CFLAGS: -I.
-#cgo LDFLAGS: -L. -lSWIFFTX
+#cgo CFLAGS: -I.  // Include the current directory for headers
+#cgo LDFLAGS: -L. -lSWIFFTX -lSHA3  // Link the object files if needed
 #include "SWIFFTX.h"
 #include "SHA3.h"
 #include <stdlib.h>
