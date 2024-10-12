@@ -5,7 +5,11 @@ OPT = -funroll-loops
 SHA3_OBJS = SHA3.o SWIFFTX.o
 
 # Default target
-all: swifftx
+all: sha3 swifftx
+
+# Compile the main SHA3 executable with main.c
+sha3: main.c $(SHA3_OBJS)
+	${CC} -O3 -DSYS_STDINT ${OPT} -msse2 $(SHA3_OBJS) main.c -o sha3
 
 # Compile the Go program linking with the C object files
 swifftx:
@@ -24,6 +28,10 @@ swifftx:
 %.o: %.c
 	${CC} -c $< -o $@
 
+# Debug version without Tester.c
+sha3-dbg: main.c $(SHA3_OBJS)
+	${CC} -g -lm -DSYS_STDINT $(SHA3_OBJS) main.c -o sha3-dbg
+
 # Clean up
 clean: 
-	rm -f *.o *.s *~ swifftx
+	rm -f *.o *.s *~ sha3 sha3-dbg swifftx
