@@ -35,96 +35,100 @@ import (
 
 // LRUCache is a struct for the LRU cache implementation.
 type LRUCache struct {
-	capacity int
-	mu       sync.Mutex
-	cache    map[uint64]*Node
-	head     *Node
-	tail     *Node
+	capacity int              // Maximum capacity of the cache
+	mu       sync.Mutex       // Mutex for concurrent access
+	cache    map[uint64]*Node // Maps keys to their corresponding nodes in the cache
+	head     *Node            // Pointer to the most recently used node
+	tail     *Node            // Pointer to the least recently used node
 }
 
 // Node is a doubly linked list node for the LRU cache.
 type Node struct {
-	key   uint64
-	value []byte
-	prev  *Node
-	next  *Node
+	key   uint64 // Unique key for the node
+	value []byte // Value associated with the key
+	prev  *Node  // Pointer to the previous node in the list
+	next  *Node  // Pointer to the next node in the list
 }
 
 // NewLRUCache initializes a new LRU cache.
 func NewLRUCache(capacity int) *LRUCache {
 	return &LRUCache{
-		capacity: capacity,
-		cache:    make(map[uint64]*Node),
+		capacity: capacity,               // Set the cache capacity
+		cache:    make(map[uint64]*Node), // Initialize the cache map
 	}
 }
 
 // Get retrieves a value from the cache.
 func (l *LRUCache) Get(key uint64) ([]byte, bool) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
+	l.mu.Lock()         // Lock the cache for concurrent access
+	defer l.mu.Unlock() // Ensure the lock is released after the function completes
 
 	if node, found := l.cache[key]; found {
-		l.moveToFront(node)
+		l.moveToFront(node) // Move accessed node to the front (most recently used)
 		return node.value, true
 	}
-	return nil, false
+	return nil, false // Return nil if key is not found
 }
 
 // Put inserts a value into the cache.
 func (l *LRUCache) Put(key uint64, value []byte) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
+	l.mu.Lock()         // Lock the cache for concurrent access
+	defer l.mu.Unlock() // Ensure the lock is released after the function completes
 
 	if node, found := l.cache[key]; found {
-		node.value = value
-		l.moveToFront(node)
+		node.value = value  // Update the value if the key already exists
+		l.moveToFront(node) // Move the updated node to the front
 		return
 	}
 
+	// Create a new node if the key is not found
 	node := &Node{key: key, value: value}
-	l.cache[key] = node
+	l.cache[key] = node // Add new node to the cache
+
+	// If the cache is empty, set head and tail to the new node
 	if l.head == nil {
 		l.head = node
 		l.tail = node
 	} else {
-		node.next = l.head
+		node.next = l.head // Insert new node at the front of the linked list
 		l.head.prev = node
 		l.head = node
 	}
 
+	// Evict the least recently used item if cache exceeds capacity
 	if len(l.cache) > l.capacity {
-		l.evict()
+		l.evict() // Call eviction method to remove the least recently used item
 	}
 }
 
 // evict removes the least recently used item from the cache.
 func (l *LRUCache) evict() {
 	if l.tail == nil {
-		return
+		return // Do nothing if the cache is empty
 	}
-	delete(l.cache, l.tail.key)
-	l.tail = l.tail.prev
+	delete(l.cache, l.tail.key) // Remove the least recently used key from the cache
+	l.tail = l.tail.prev        // Move the tail pointer to the previous node
 	if l.tail != nil {
-		l.tail.next = nil
+		l.tail.next = nil // Set the next pointer of the new tail to nil
 	}
 }
 
 // moveToFront moves a node to the front of the linked list.
 func (l *LRUCache) moveToFront(node *Node) {
 	if node == l.head {
-		return
+		return // No need to move if the node is already at the front
 	}
 	if node.prev != nil {
-		node.prev.next = node.next
+		node.prev.next = node.next // Bypass the node in the linked list
 	}
 	if node.next != nil {
-		node.next.prev = node.prev
+		node.next.prev = node.prev // Bypass the node in the linked list
 	}
 	if node == l.tail {
-		l.tail = node.prev
+		l.tail = node.prev // Update the tail if the node being moved is the tail
 	}
 	node.prev = nil
-	node.next = l.head
+	node.next = l.head // Move the node to the front
 	l.head.prev = node
 	l.head = node
 }
