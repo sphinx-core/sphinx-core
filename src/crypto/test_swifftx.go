@@ -26,20 +26,22 @@ import (
 	"fmt"
 	"log"
 
-	Swifftx "github.com/sphinx-core/sphinx-core/src/crypto/Swifftx"
+	swifftx "github.com/sphinx-core/sphinx-core/src/crypto/Swifftx"
 )
 
 func main() {
 	// Test data
-	data := []byte("Hello, world!") // The data you want to hash
-	hashbitlen := 256               // Choose a hash length (224, 256, 384, or 512)
+	data := make([]byte, 256)           // Swifftx expects exactly 256 bytes for input
+	copy(data, []byte("Hello, world!")) // Copy the actual data into the 256-byte array
+
+	doSmooth := true // Set to true or false depending on whether you want the smoothing step
 
 	// Call the SwifftxHash function
-	hashval, err := Swifftx.SwifftxHash(hashbitlen, data)
+	hashval, err := swifftx.SwifftxHash(data, doSmooth)
 	if err != nil {
 		log.Fatalf("Error hashing data: %v", err)
 	}
 
-	// Print the resulting hash value
-	fmt.Printf("Hash value: %x\n", hashval[:Swifftx.SWIFFTX_OUTPUT_BLOCK_SIZE]) // Print the hash as hex
+	// Print the resulting hash value as a hex string
+	fmt.Printf("Hash value: %x\n", hashval) // Print the entire hash as hex
 }
