@@ -12,8 +12,13 @@ sha3: Tester.c $(SHA3_OBJS)
 	${CC} -O3 -DSYS_STDINT ${OPT} -msse2 $(SHA3_OBJS) Tester.c -o sha3
 
 # Compile the Go program linking with the C object files
-swifftx: swifftx.go $(SHA3_OBJS)
-	go build -o swifftx swifftx.go
+swifftx:
+	@if [ -f swifftx.go ]; then \
+		go build -o swifftx swifftx.go; \
+	else \
+		echo "swifftx.go not found!"; \
+		exit 1; \
+	fi
 
 # Compile C files to object files
 %.o: %.c
