@@ -24,7 +24,7 @@ package swifftx
 
 /*
 #cgo CFLAGS: -I.
-#include "swifftx.h"
+#include "SWIFFTX.h" // Ensure the case matches exactly
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
