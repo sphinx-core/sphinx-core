@@ -24,6 +24,8 @@ package swifftx
 
 /*
 #cgo CFLAGS: -I.
+#cgo LDFLAGS: -L. -lSWIFFTX
+#include "SWIFFTX.h"
 #include "SHA3.h"
 #include <stdlib.h>
 #include <stdint.h>
