@@ -163,17 +163,17 @@ func (sm *SphincsManager) VerifySignature(params *parameters.Parameters, message
 		sigParts[i] = sigBytes[start:end]
 	}
 
-	// Merkle Root Verification: After the signature verification, the serialized signature
-	// is split into four parts, and these parts are used to rebuild a Merkle tree.
-	// The hash of the rebuilt Merkle root is then compared with the hash of the provided merkleRoot.
-	// If both hashes match, the function returns true, confirming that the signature corresponds
-	// to the expected Merkle root.
-	//
 	//  Efficient Verification:
 	// During verification, the signature is reassembled into parts.
 	// A Merkle tree is reconstructed, and the root hash is compared with the original
 	// Merkle root stored from signing. This ensures the integrity of the signature
 	// without loading the entire 35,000 bytes at once.
+	//
+	// Merkle Root Verification: After the signature verification, the serialized signature
+	// is split into four parts, and these parts are used to rebuild a Merkle tree.
+	// The hash of the rebuilt Merkle root is then compared with the hash of the provided merkleRoot.
+	// If both hashes match, the function returns true, confirming that the signature corresponds
+	// to the expected Merkle root.
 	rebuiltRoot, err := buildMerkleTreeFromSignature(sigParts)
 	if err != nil {
 		// If there is an error while rebuilding the Merkle tree, return false
