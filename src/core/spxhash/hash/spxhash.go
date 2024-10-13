@@ -186,8 +186,6 @@ func (s *SphinxHash) Sum(b []byte) []byte {
 // Size returns the number of bytes in the hash based on the bit size.
 func (s *SphinxHash) Size() int {
 	switch s.bitSize {
-	case 128:
-		return 16 // 128 bits = 16 bytes
 	case 256:
 		return 32 // 256 bits = 32 bytes
 	case 384:
@@ -202,16 +200,14 @@ func (s *SphinxHash) Size() int {
 // BlockSize returns the hash block size based on the current bit size configuration.
 func (s *SphinxHash) BlockSize() int {
 	switch s.bitSize {
-	case 128:
-		return 168 // For SHAKE128
 	case 256:
-		return 64 // For SHA-256
+		return 136 // For SHAKE256 or SHA-256 (you can adjust based on SHAKE256 preference)
 	case 384:
 		return 128 // For SHA-384
 	case 512:
 		return 128 // For SHA-512
 	default:
-		return 64 // Defaulting to SHA-256 block size
+		return 64 // Defaulting to SHA-256 block size for unspecified sizes
 	}
 }
 
@@ -225,16 +221,20 @@ func (s *SphinxHash) hashData(data []byte) []byte {
 
 	// Generate SHA2 and SHAKE hashes based on the bit size
 	switch s.bitSize {
-	case 128:
+	case 256:
+		// Step 1: Compute SHA-256
+		hash := sha256.Sum256(stretchedKey) // Compute the SHA-256 hash
+		sha2Hash = hash[:]                  // Convert the array to a slice
+
+		// Step 2: Compute SHAKE256
 		shake := sha3.NewShake256()
-		shake.Write(stretchedKey)     // Use stretched key
+		shake.Write(stretchedKey)     // Use stretched key for SHAKE256 as well
 		shakeHash := make([]byte, 32) // 256 bits = 32 bytes
 		shake.Read(shakeHash)
-		return shakeHash
-	case 256:
-		hash := sha256.Sum256(stretchedKey)              // Compute the SHA-256 hash
-		sha2Hash = hash[:]                               // Convert the array to a slice
-		return s.sphinxHash(sha2Hash, sha2Hash, prime32) // Combine the hash
+
+		// Step 3: Combine the hashes
+		return s.sphinxHash(sha2Hash, shakeHash, prime32) // Combine SHA-256 and SHAKE256 results
+
 	case 384:
 		hash := sha512.Sum384(stretchedKey)              // Compute the SHA-384 hash
 		sha2Hash = hash[:]                               // Convert the array to a slice
