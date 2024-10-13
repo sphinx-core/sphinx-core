@@ -29,9 +29,11 @@ import (
 	"os"
 	"syscall"
 
-	spxhash "github.com/sphinx-core/sphinx-core/src/core/spxhash/hash"
 	"github.com/syndtr/goleveldb/leveldb"
+	"golang.org/x/crypto/sha3"
 )
+
+// SIPS-0002 https://github.com/sphinx-core/sips/wiki/SIPS-0002
 
 var maxFileSize = 1 << 30 // 1 GiB max file size for memory mapping
 
@@ -62,13 +64,18 @@ func (tree *HashTree) Build() error {
 	return nil
 }
 
-// Compute the hash of a given data slice using SphinxHash
+// Compute the hash of a given data slice using SHAKE-256
 func computeHash(data []byte) []byte {
-	sphinx := spxhash.NewSphinxHash(256, 100) // Create a new SphinxHash instance
-	return sphinx.GetHash(data)               // Hash the data
+	hasher := sha3.NewShake256() // Create a new SHAKE-256 hasher
+	hasher.Write(data)           // Write the data to the hasher
+	hash := make([]byte, 32)     // Create a byte slice to hold the hash (256 bits)
+	hasher.Read(hash)            // Read the hash into the byte slice
+	return hash
 }
 
 // BuildHashTree builds a Merkle hash tree from leaf nodes.
+// It returns the root node of the hash tree, which is computed by repeatedly
+// combining and hashing pairs of leaf nodes and intermediate nodes.
 func BuildHashTree(leaves [][]byte) *HashTreeNode {
 	// Create an array of hash tree nodes, where each leaf node is hashed.
 	nodes := make([]*HashTreeNode, len(leaves))
@@ -220,24 +227,21 @@ func MemoryMapFile(filename string) ([]byte, error) {
 
 	// Use the syscall package to obtain the file descriptor and file info
 	fd := int(file.Fd())
-	// Get file statistics to check its size
-	fi, err := file.Stat()
-	if err != nil {
-		// Return an error if file statistics cannot be obtained
-		return nil, fmt.Errorf("error stating file: %w", err)
+	var stat syscall.Stat_t
+	if err := syscall.Fstat(fd, &stat); err != nil {
+		// Return an error if the file information cannot be fetched
+		return nil, fmt.Errorf("error getting file info: %w", err)
 	}
-	// Check if the file size exceeds the maximum allowed size
-	if fi.Size() > int64(maxFileSize) {
-		// Return an error if the file is too large
-		return nil, fmt.Errorf("file too large: %s", filename)
+	// Check if the file size exceeds the maximum allowed size, returning an error if so
+	if stat.Size > int64(maxFileSize) {
+		return nil, fmt.Errorf("file size exceeds maximum allowed size of %d bytes", maxFileSize)
 	}
 
-	// Use mmap to map the file into memory (syscall package for lower-level access)
-	data, err := syscall.Mmap(fd, 0, int(fi.Size()), syscall.PROT_READ, syscall.MAP_SHARED)
+	// Use syscall.Mmap to map the file into memory
+	data, err := syscall.Mmap(fd, 0, int(stat.Size), syscall.PROT_READ, syscall.MAP_PRIVATE)
 	if err != nil {
-		// Return an error if the memory mapping fails
-		return nil, fmt.Errorf("error mapping file: %w", err)
+		// Return an error if the mapping fails, providing context
+		return nil, fmt.Errorf("error mapping file into memory: %w", err)
 	}
-	// Return the mapped data for use
-	return data, nil
+	return data, nil // Return the memory-mapped data
 }
