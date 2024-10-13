@@ -25,6 +25,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/kasperdi/SPHINCSPLUS-golang/parameters"
 	"github.com/sphinx-core/sphinx-core/src/core/hashtree"
@@ -36,8 +37,14 @@ func main() {
 	// Initialize parameters for SHAKE256-robust with N = 24
 	params := parameters.MakeSphincsPlusSHAKE256192fRobust(false)
 
-	// Open LevelDB
-	db, err := leveldb.OpenFile("leaves_db", nil)
+	// Create the root_hashtree directory inside src/core
+	err := os.MkdirAll("root_hashtree", os.ModePerm)
+	if err != nil {
+		log.Fatal("Failed to create root_hashtree directory:", err)
+	}
+
+	// Open LevelDB in the new directory
+	db, err := leveldb.OpenFile("root_hashtree/leaves_db", nil)
 	if err != nil {
 		log.Fatal("Failed to open LevelDB:", err)
 	}
@@ -84,14 +91,14 @@ func main() {
 	fmt.Printf("Merkle Tree Root Hash: %x\n", merkleRoot.Hash)
 	fmt.Printf("Size of Merkle Tree Root Hash: %d bytes\n", len(merkleRoot.Hash))
 
-	// Save Merkle root hash to a file
-	err = hashtree.SaveRootHashToFile(merkleRoot, "merkle_root_hash.bin")
+	// Save Merkle root hash to a file in the new directory
+	err = hashtree.SaveRootHashToFile(merkleRoot, "root_hashtree/merkle_root_hash.bin")
 	if err != nil {
 		log.Fatal("Failed to save root hash to file:", err)
 	}
 
-	// Load Merkle root hash from a file
-	loadedHash, err := hashtree.LoadRootHashFromFile("merkle_root_hash.bin")
+	// Load Merkle root hash from the file
+	loadedHash, err := hashtree.LoadRootHashFromFile("root_hashtree/merkle_root_hash.bin")
 	if err != nil {
 		log.Fatal("Failed to load root hash from file:", err)
 	}
