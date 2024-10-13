@@ -163,7 +163,7 @@ func (sm *SphincsManager) VerifySignature(params *parameters.Parameters, message
 		sigParts[i] = sigBytes[start:end]
 	}
 
-	//  Efficient Verification:
+	// Efficient Verification:
 	// During verification, the signature is reassembled into parts.
 	// A Merkle tree is reconstructed, and the root hash is compared with the original
 	// Merkle root stored from signing. This ensures the integrity of the signature
