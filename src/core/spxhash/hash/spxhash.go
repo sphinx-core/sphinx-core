@@ -33,7 +33,7 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-// SIPS-0001 implementation
+// SIPS-0001 https://github.com/sphinx-core/sips/wiki/SIPS-0001
 
 // LRUCache is a struct for the LRU cache implementation.
 type LRUCache struct {
