@@ -33,6 +33,8 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
+// SIPS-0001 implementation
+
 // LRUCache is a struct for the LRU cache implementation.
 type LRUCache struct {
 	capacity int              // Maximum capacity of the cache
