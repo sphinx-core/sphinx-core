@@ -23,6 +23,7 @@
 package hashtree
 
 import (
+	"bytes"
 	"crypto/rand"
 	"fmt"
 	"io/ioutil"
@@ -39,9 +40,10 @@ var maxFileSize = 1 << 30 // 1 GiB max file size for memory mapping
 
 // HashTreeNode represents a node in the hash tree
 type HashTreeNode struct {
-	Hash  []byte        `json:"hash"`            // Hash of the node's data
-	Left  *HashTreeNode `json:"left,omitempty"`  // Left child node
-	Right *HashTreeNode `json:"right,omitempty"` // Right child node
+	Hash    []byte        `json:"hash"`              // Hash of the node's data
+	Left    *HashTreeNode `json:"left,omitempty"`    // Left child node
+	Right   *HashTreeNode `json:"right,omitempty"`   // Right child node
+	Sibling *HashTreeNode `json:"sibling,omitempty"` // Sibling node for proof
 }
 
 // NewHashTree creates a new HashTree instance with the given leaves.
@@ -112,6 +114,46 @@ func BuildHashTree(leaves [][]byte) *HashTreeNode {
 	return nodes[0]
 }
 
+// GenerateProof generates a Merkle proof for a given leaf index.
+func (tree *HashTree) GenerateProof(leafIndex int) ([][]byte, error) {
+	if leafIndex < 0 || leafIndex >= len(tree.Leaves) {
+		return nil, fmt.Errorf("invalid leaf index")
+	}
+
+	var proof [][]byte
+	nodes := make([]*HashTreeNode, len(tree.Leaves))
+	for i, leaf := range tree.Leaves {
+		nodes[i] = &HashTreeNode{Hash: computeHash(leaf)}
+	}
+
+	for len(nodes) > 1 {
+		var nextLevel []*HashTreeNode
+
+		for i := 0; i < len(nodes); i += 2 {
+			if i+1 < len(nodes) {
+				left, right := nodes[i], nodes[i+1]
+				hash := computeHash(append(left.Hash, right.Hash...))
+
+				if i == leafIndex || i+1 == leafIndex {
+					if i == leafIndex {
+						proof = append(proof, right.Hash) // Include right sibling hash
+					} else {
+						proof = append(proof, left.Hash) // Include left sibling hash
+					}
+				}
+
+				nextLevel = append(nextLevel, &HashTreeNode{Hash: hash, Left: left, Right: right})
+			} else {
+				nextLevel = append(nextLevel, nodes[i])
+			}
+		}
+
+		nodes = nextLevel
+	}
+
+	return proof, nil
+}
+
 // Generate random data of specified length
 func GenerateRandomData(size int) ([]byte, error) {
 	data := make([]byte, size)
@@ -129,7 +171,11 @@ func SaveRootHashToFile(root *HashTreeNode, filename string) error {
 
 // Load root hash from file
 func LoadRootHashFromFile(filename string) ([]byte, error) {
-	return ioutil.ReadFile(filename) // Read root hash from file
+	hash, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load root hash from file %s: %w", filename, err)
+	}
+	return hash, nil
 }
 
 // SaveLeavesToDB saves leaf node data to LevelDB.
@@ -212,6 +258,22 @@ func setMaxFileSize(sizeInGiB int) {
 	}
 	// Convert the provided size from GiB to bytes (1 GiB = 2^30 bytes) and set the global maxFileSize
 	maxFileSize = sizeInGiB * (1 << 30) // Convert GiB to bytes
+}
+
+// VerifySignature verifies if a leaf hash belongs to the hash tree represented by the root hash.
+func VerifySignature(leafHash, rootHash []byte, proof [][]byte) bool {
+	currentHash := leafHash
+
+	for _, siblingHash := range proof {
+		// Combine the current hash with its sibling
+		if bytes.Compare(currentHash, siblingHash) < 0 {
+			currentHash = computeHash(append(currentHash, siblingHash...))
+		} else {
+			currentHash = computeHash(append(siblingHash, currentHash...))
+		}
+	}
+
+	return bytes.Equal(currentHash, rootHash)
 }
 
 // MemoryMapFile maps a file into memory with size checks
