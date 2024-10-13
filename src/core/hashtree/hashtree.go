@@ -29,8 +29,8 @@ import (
 	"os"
 	"syscall"
 
-	spxhash "github.com/sphinx-core/sphinx-core/src/core/spxhash/hash"
 	"github.com/syndtr/goleveldb/leveldb"
+	"golang.org/x/crypto/sha3"
 )
 
 // SIPS-0002 https://github.com/sphinx-core/sips/wiki/SIPS-0002
@@ -64,11 +64,12 @@ func (tree *HashTree) Build() error {
 	return nil
 }
 
-// Compute the hash of a given data slice using SHAKE-256
+// Compute the hash of a given data slice using SHAKE-256s
 func computeHash(data []byte) []byte {
-	sphinx := spxhash.NewSphinxHash(256, 100)
-	hash := sphinx.GetHash(data)
-	fmt.Printf("Computed Hash: %x for data: %x\n", hash, data) // Debug output
+	hasher := sha3.NewShake256() // Create a new SHAKE-256 hasher
+	hasher.Write(data)           // Write the data to the hasher
+	hash := make([]byte, 32)     // Create a byte slice to hold the hash (256 bits)
+	hasher.Read(hash)            // Read the hash into the byte slice
 	return hash
 }
 
