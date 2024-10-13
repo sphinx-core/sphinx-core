@@ -132,7 +132,9 @@ func (sm *SphincsManager) SignMessage(params *parameters.Parameters, message []b
 
 // VerifySignature verifies if a signature is valid for a given message and public key
 func (sm *SphincsManager) VerifySignature(params *parameters.Parameters, message []byte, sig *sphincs.SPHINCS_SIG, pk *sphincs.SPHINCS_PK, merkleRoot *hashtree.HashTreeNode) bool {
-	// Verify the SPHINCS+ signature using the message, signature, public key, and parameters
+	// Signature Verification: The signature is first verified using the sphincs.Spx_verify function,
+	// which checks if the signature is valid for the provided message, public key, and parameters.
+	// This part ensures that the original SPHINCS+ signature is valid.
 	isValid := sphincs.Spx_verify(params, message, sig, pk)
 	if !isValid {
 		// If the signature is not valid, return false
@@ -161,7 +163,11 @@ func (sm *SphincsManager) VerifySignature(params *parameters.Parameters, message
 		sigParts[i] = sigBytes[start:end]
 	}
 
-	// Rebuild the Merkle tree from the signature parts
+	// Merkle Root Verification: After the signature verification, the serialized signature
+	// is split into four parts, and these parts are used to rebuild a Merkle tree.
+	// The hash of the rebuilt Merkle root is then compared with the hash of the provided merkleRoot.
+	// If both hashes match, the function returns true, confirming that the signature corresponds
+	// to the expected Merkle root.
 	rebuiltRoot, err := buildMerkleTreeFromSignature(sigParts)
 	if err != nil {
 		// If there is an error while rebuilding the Merkle tree, return false
