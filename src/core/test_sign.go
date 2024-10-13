@@ -104,13 +104,6 @@ func main() {
 		log.Fatal("Failed to save leaves to DB:", err)
 	}
 
-	// Fetch a leaf from LevelDB
-	leaf, err := hashtree.FetchLeafFromDB(db, "leaf-0")
-	if err != nil {
-		log.Fatal("Failed to fetch leaf from DB:", err)
-	}
-	fmt.Printf("Fetched Leaf: %x\n", leaf)
-
 	// Call generateRandomData to make it used
 	randomData, err := hashtree.GenerateRandomData(16)
 	if err != nil {
