@@ -167,7 +167,7 @@ func (sm *SphincsManager) VerifySignature(params *parameters.Parameters, message
 	// During verification, the signature is reassembled into parts.
 	// A Merkle tree is reconstructed, and the root hash is compared with the original
 	// Merkle root stored from signing. This ensures the integrity of the signature
-	// without loading the entire 35,000 bytes at once.
+	// without loading the entire 35,664 bytes at once.
 	//
 	// Merkle Root Verification: After the signature verification, the serialized signature
 	// is split into four parts, and these parts are used to rebuild a Merkle tree.
