@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
-	"log" // Added log package for logging errors
+	"log"
 
-	"github.com/sphinx-core/sphinx-core/src/core/wallet" // Corrected the import path
+	"github.com/sphinx-core/sphinx-core/src/core/wallet/crypter" // Updated import path
 )
 
 func main() {
-	mk := wallet.NewMasterKey() // Added 'wallet.' before NewMasterKey to properly reference the function
+	mk := crypter.NewMasterKey() // Updated to 'crypter.' for proper referencing
 	mk.VchCryptedKey = []byte("example_crypted_key")
 	mk.VchSalt = []byte("example_salt")
 
@@ -23,21 +23,21 @@ func main() {
 	fmt.Printf("Serialized MasterKey: %s\n", string(serialized))
 
 	// Deserialize
-	newMk := wallet.NewMasterKey() // Added 'wallet.' here as well
+	newMk := crypter.NewMasterKey() // Updated to 'crypter.' here as well
 	if err := newMk.Deserialize(serialized); err != nil {
 		log.Fatalf("Error during deserialization: %v", err)
 	}
 	fmt.Printf("MasterKey after deserialization: %+v\n", newMk)
 
 	// Create a new CCrypter instance
-	crypt := &wallet.CCrypter{} // Added 'wallet.' to reference the correct struct
+	crypt := &crypter.CCrypter{} // Updated to 'crypter.' to reference the correct struct
 
 	// Generate random key data and salt
-	keyData, err := wallet.GenerateRandomBytes(wallet.WALLET_CRYPTO_KEY_SIZE)
+	keyData, err := crypter.GenerateRandomBytes(crypter.WALLET_CRYPTO_KEY_SIZE)
 	if err != nil {
 		log.Fatalf("Failed to generate key data: %v", err)
 	}
-	salt, err := wallet.GenerateRandomBytes(wallet.WALLET_CRYPTO_IV_SIZE) // Ensure salt size is correct
+	salt, err := crypter.GenerateRandomBytes(crypter.WALLET_CRYPTO_IV_SIZE) // Ensure salt size is correct
 	if err != nil {
 		log.Fatalf("Failed to generate salt: %v", err)
 	}
@@ -69,22 +69,22 @@ func main() {
 	fmt.Printf("Decrypted text: %s\n", decryptedText)
 
 	// Create a Uint256 IV (must be 16 bytes for AES)
-	ivBytes, err := wallet.GenerateRandomBytes(wallet.WALLET_CRYPTO_IV_SIZE) // 16 bytes
+	ivBytes, err := crypter.GenerateRandomBytes(crypter.WALLET_CRYPTO_IV_SIZE) // 16 bytes
 	if err != nil {
 		log.Fatalf("Failed to generate IV: %v", err)
 	}
-	iv := wallet.BytesToUint256(ivBytes)
+	iv := crypter.BytesToUint256(ivBytes)
 
 	// Encrypt a secret
 	secret := []byte("This is a secret key!")
-	encryptedSecret, err := wallet.EncryptSecret(keyData, secret, iv)
+	encryptedSecret, err := crypter.EncryptSecret(keyData, secret, iv)
 	if err != nil {
 		log.Fatalf("Failed to encrypt secret: %v", err)
 	}
 	fmt.Printf("Encrypted secret: %x\n", encryptedSecret)
 
 	// Decrypt the secret
-	decryptedSecret, err := wallet.DecryptSecret(keyData, encryptedSecret, iv)
+	decryptedSecret, err := crypter.DecryptSecret(keyData, encryptedSecret, iv)
 	if err != nil {
 		log.Fatalf("Failed to decrypt secret: %v", err)
 	}
