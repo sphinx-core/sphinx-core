@@ -25,6 +25,7 @@ package spxhash
 import (
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/sha512"
 	"encoding/binary"
 	"sync"
 
@@ -215,7 +216,6 @@ func (s *SphinxHash) BlockSize() int {
 }
 
 // hashData calculates the combined hash of data using multiple hash functions based on the bit size.
-// hashData calculates the combined hash of data using SHA-256 and SHAKE256 based on the bit size.
 func (s *SphinxHash) hashData(data []byte) []byte {
 	var sha2Hash []byte
 
@@ -223,18 +223,37 @@ func (s *SphinxHash) hashData(data []byte) []byte {
 	combined := append(data, s.salt...)                                                 // Combine data and salt
 	stretchedKey := argon2.IDKey(combined, s.salt, iterations, memory, parallelism, 64) // Key stretching with Argon2id
 
-	// Step 1: Compute SHA-256
-	hash := sha256.Sum256(stretchedKey) // Compute the SHA-256 hash
-	sha2Hash = hash[:]                  // Convert the array to a slice
+	// Generate SHA2 and SHAKE hashes based on the bit size
+	switch s.bitSize {
+	case 256:
+		// Step 1: Compute SHA-256
+		hash := sha256.Sum256(stretchedKey) // Compute the SHA-256 hash
+		sha2Hash = hash[:]                  // Convert the array to a slice
 
-	// Step 2: Compute SHAKE256
-	shake := sha3.NewShake256()
-	shake.Write(stretchedKey)     // Use stretched key for SHAKE256 as well
-	shakeHash := make([]byte, 32) // 256 bits = 32 bytes
-	shake.Read(shakeHash)
+		// Step 2: Compute SHAKE256
+		shake := sha3.NewShake256()
+		shake.Write(stretchedKey)     // Use stretched key for SHAKE256 as well
+		shakeHash := make([]byte, 32) // 256 bits = 32 bytes
+		shake.Read(shakeHash)
 
-	// Step 3: Combine the hashes
-	return s.sphinxHash(sha2Hash, shakeHash, prime32) // Combine SHA-256 and SHAKE256 results
+		// Step 3: Combine the hashes
+		return s.sphinxHash(sha2Hash, shakeHash, prime32) // Combine SHA-256 and SHAKE256 results
+
+	case 384:
+		hash := sha512.Sum384(stretchedKey)              // Compute the SHA-384 hash
+		sha2Hash = hash[:]                               // Convert the array to a slice
+		return s.sphinxHash(sha2Hash, sha2Hash, prime64) // Combine the hash
+	case 512:
+		hash := sha512.Sum512(stretchedKey)              // Compute the SHA-512 hash
+		sha2Hash = hash[:]                               // Convert the array to a slice
+		return s.sphinxHash(sha2Hash, sha2Hash, prime64) // Combine the hash
+	default:
+		shake := sha3.NewShake256()   // Use SHAKE256 as the fallback case as well
+		shake.Write(stretchedKey)     // Write the input data to the SHAKE256 instance
+		shakeHash := make([]byte, 32) // 256 bits = 32 bytes
+		shake.Read(shakeHash)         // Read the generated hash
+		return shakeHash              // Return the 256-bit hash
+	}
 }
 
 // sphinxHash combines two byte slices (hash1 and hash2) using a prime constant and applies structured combinations.
