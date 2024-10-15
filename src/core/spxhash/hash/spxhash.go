@@ -29,7 +29,7 @@ import (
 	"encoding/binary"
 	"sync"
 
-	"golang.org/x/crypto/pbkdf2"
+	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -146,10 +146,12 @@ type SphinxHash struct {
 
 // Define prime constants for hash calculations.
 const (
-	prime32    = 0x9e3779b9         // Example prime constant for 32-bit hash
-	prime64    = 0x9e3779b97f4a7c15 // Example prime constant for 64-bit hash
-	saltSize   = 16                 // Size of salt in bytes
-	iterations = 25000              // PBKDF2 iterations
+	prime32     = 0x9e3779b9         // Example prime constant for 32-bit hash
+	prime64     = 0x9e3779b97f4a7c15 // Example prime constant for 64-bit hash
+	saltSize    = 16                 // Size of salt in bytes
+	memory      = 64 * 1024          // Memory cost (in KB) for Argon2
+	iterations  = 4                  // Number of iterations for Argon2
+	parallelism = 6                  // Number of parallel threads for Argon2
 )
 
 // NewSphinxHash creates a new SphinxHash with a specific bit size for the hash.
@@ -217,9 +219,9 @@ func (s *SphinxHash) BlockSize() int {
 func (s *SphinxHash) hashData(data []byte) []byte {
 	var sha2Hash []byte
 
-	// Combine data with salt for PBKDF2
-	combined := append(data, s.salt...)                                      // Combine data and salt
-	stretchedKey := pbkdf2.Key(combined, s.salt, iterations, 64, sha512.New) // Key stretching with PBKDF2
+	// Combine data with salt for Argon2id
+	combined := append(data, s.salt...)                                                 // Combine data and salt
+	stretchedKey := argon2.IDKey(combined, s.salt, iterations, memory, parallelism, 64) // Key stretching with Argon2id
 
 	// Generate SHA2 and SHAKE hashes based on the bit size
 	switch s.bitSize {
