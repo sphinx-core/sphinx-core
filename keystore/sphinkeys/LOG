@@ -1,0 +1,19 @@
+=============== Oct 15, 2024 (WIB) ===============
+08:59:45.054436 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+08:59:45.078083 db@open opening
+08:59:45.079025 version@stat F·[] S·0B[] Sc·[]
+08:59:45.093805 db@janitor F·2 G·0
+08:59:45.093866 db@open done T·15.70782ms
+08:59:45.110575 db@close closing
+08:59:45.110740 db@close done T·162.109µs
+=============== Oct 15, 2024 (WIB) ===============
+09:00:58.103880 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+09:00:58.104442 version@stat F·[] S·0B[] Sc·[]
+09:00:58.104465 db@open opening
+09:00:58.104542 journal@recovery F·1
+09:00:58.104901 journal@recovery recovering @1
+09:00:58.105655 version@stat F·[] S·0B[] Sc·[]
+09:00:58.145984 db@janitor F·2 G·0
+09:00:58.146042 db@open done T·41.55765ms
+09:00:58.165037 db@close closing
+09:00:58.165530 db@close done T·443.561µs

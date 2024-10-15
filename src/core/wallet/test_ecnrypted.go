@@ -15,14 +15,14 @@ func main() {
 	// Initialize parameters for SHAKE256-robust with N = 24
 	params := parameters.MakeSphincsPlusSHAKE256192fRobust(false)
 
-	// Create the root_hashtree directory inside src/core
-	err := os.MkdirAll("root_hashtree", os.ModePerm)
+	// Create the keystore directory
+	err := os.MkdirAll("keystore", os.ModePerm)
 	if err != nil {
-		log.Fatal("Failed to create root_hashtree directory:", err)
+		log.Fatal("Failed to create keystore directory:", err)
 	}
 
-	// Open LevelDB in the new directory
-	db, err := leveldb.OpenFile("root_hashtree/leaves_db", nil)
+	// Open LevelDB in the keystore directory
+	db, err := leveldb.OpenFile("keystore/sphinkeys", nil)
 	if err != nil {
 		log.Fatal("Failed to open LevelDB:", err)
 	}
@@ -73,6 +73,13 @@ func main() {
 	}
 	fmt.Printf("Encrypted Secret Key: %x\n", encryptedSecretKey)
 
+	// Save the encrypted secret key to a .dat file
+	err = saveToFile("keystore/secretkey.dat", encryptedSecretKey)
+	if err != nil {
+		log.Fatalf("Failed to save secret key to file: %v", err)
+	}
+	fmt.Println("Encrypted Secret Key saved to keystore/secretkey.dat")
+
 	// Optional: Decrypt the encrypted secret key to verify encryption
 	decryptedSecretKey, err := crypt.Decrypt(encryptedSecretKey)
 	if err != nil {
@@ -81,10 +88,28 @@ func main() {
 	fmt.Printf("Decrypted Secret Key: %x\n", decryptedSecretKey)
 
 	// Deserialize the decrypted key to verify the integrity
-	deserializedSecretKey, err := manager.DeserializeSK(params, decryptedSecretKey) // Use manager instead of sphincsManager
+	deserializedSecretKey, err := manager.DeserializeSK(params, decryptedSecretKey)
 	if err != nil {
 		log.Fatalf("Failed to deserialize secret key: %v", err)
 	}
 	fmt.Println("Deserialized Secret Key matches original!")
-	fmt.Printf("Deserialized Secret Key: %x\n", deserializedSecretKey) // Now used to print
+	fmt.Printf("Deserialized Secret Key: %x\n", deserializedSecretKey)
+}
+
+// saveToFile saves the given data to a file with the provided file path
+func saveToFile(filePath string, data []byte) error {
+	// Create and open the file
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// Write data to the file
+	_, err = file.Write(data)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
