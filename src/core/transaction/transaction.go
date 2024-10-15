@@ -99,13 +99,30 @@ func (m Message) AccessList() AccessList  { return m.accessList }
 func (m Message) IsFake() bool            { return m.isFake }
 func (m Message) EmbeddedMessage() string { return m.embeddedMessage } // Getter for embedded message
 
-// Method to set embedded message
-func (m *Message) SetEmbeddedMessage(msg string) {
+// Method to set embedded message with validation
+func (m *Message) SetEmbeddedMessage(msg string) error {
+	if len(msg) > 32 { // Check for 256-bit (32 bytes) limit  to  36 characters
+		return errors.New("embedded message exceeds 256 bits (32 bytes) limit")
+	}
 	m.embeddedMessage = msg
+	return nil
+}
+
+// Method to convert embedded message to uint256
+func (m Message) EmbeddedMessageToUint256() *big.Int {
+	if len(m.embeddedMessage) == 0 {
+		return big.NewInt(0) // Return 0 if no message
+	}
+
+	// Convert the string message to a byte array and create a big.Int
+	msgBytes := []byte(m.embeddedMessage)
+	msgUint256 := new(big.Int).SetBytes(msgBytes)
+
+	return msgUint256
 }
 
 // Function to create a new message with options to set a custom message
-func CreateMessage(from common.Address, to common.Address, amount *big.Int, gasPrice *big.Int, gasLimit uint64, nonce uint64, customMessage string) Message {
+func CreateMessage(from common.Address, to common.Address, amount *big.Int, gasPrice *big.Int, gasLimit uint64, nonce uint64, customMessage string) (Message, error) {
 	msg := Message{
 		from:     from,
 		to:       &to,
@@ -118,10 +135,12 @@ func CreateMessage(from common.Address, to common.Address, amount *big.Int, gasP
 
 	// Set the embedded message if provided
 	if customMessage != "" {
-		msg.SetEmbeddedMessage(customMessage)
+		if err := msg.SetEmbeddedMessage(customMessage); err != nil {
+			return msg, err // Return the error if the message exceeds the limit
+		}
 	}
 
-	return msg
+	return msg, nil
 }
 
 // MarshalBinary for Transaction struct
