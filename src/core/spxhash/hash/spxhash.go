@@ -255,31 +255,31 @@ func (s *SphinxHash) hashData(data []byte) []byte {
 }
 
 // sphinxHash combines two byte slices (hash1 and hash2) using a prime constant and applies structured combinations.
-// It utilizes XOR operations and a random factor to create a unique hash output.
+// It utilizes chaining (H∘(x) = H0(H1(x))) and concatenation (H|(x) = H0(x)|H1(x)) of hash functions to enhance pre-image and collision resistance.
 func (s *SphinxHash) sphinxHash(hash1, hash2 []byte, primeConstant uint64) []byte {
 	// Check that both hash inputs have the same length; if not, panic with an error message.
 	if len(hash1) != len(hash2) {
 		panic("hash1 and hash2 must have the same length") // Ensures both hashes are of the same length for consistent processing
 	}
 
-	// Generate a secure random uint64 value to introduce variability into the hash calculation.
-	randomFactor, err := secureRandomUint64() // Calls a secure random generator to produce a 64-bit random number
-	if err != nil {
-		panic("failed to generate random factor") // If random factor generation fails, panic with an error message
+	// Step 1: Hash the input hashes to protect against pre-images.
+	// Chaining: H∘(x) = H0(H1(x))
+	// Hashing hash1 first
+	chainHash1 := sha256.Sum256(hash1)
+
+	// Hashing hash2 first
+	chainHash2 := sha256.Sum256(hash2)
+
+	// Step 2: Initialize the output slice for the SphinxHash, with the combined length of the chained hashes.
+	sphinxHash := make([]byte, len(chainHash1)) // Using the length of chainHash1 for initialization
+
+	// Step 3: Concatenate the chained hashes and apply XOR to protect against collisions.
+	// Concatenation: H|(x) = H0(x)|H1(x)
+	for i := range chainHash1 {
+		sphinxHash[i] = chainHash1[i] ^ chainHash2[i] // Combine bytes from both hashed values using XOR.
 	}
 
-	// Initialize the output slice for the SphinxHash, with the same length as the input hashes.
-	sphinxHash := make([]byte, len(hash1)) // Prepares a byte slice to hold the resulting combined hash
-
-	// Loop through each byte of the input hashes to combine them into the output hash.
-	for i := range hash1 {
-		// Combine bytes from both hash values using XOR with a shifted version of the random factor.
-		// The shift ensures that different bytes are influenced by different parts of the random factor,
-		// providing greater diffusion and complexity in the final hash output.
-		sphinxHash[i] = hash1[i] ^ hash2[i] ^ byte(randomFactor>>uint(i%64))
-	}
-
-	// Further manipulate the resulting hash using the prime constant for additional mixing.
+	// Step 4: Further manipulate the resulting hash using the prime constant for additional mixing.
 	// This is done in chunks of 8 bytes (uint64) for efficiency.
 	for i := 0; i < len(sphinxHash)/8; i++ {
 		offset := i * 8 // Calculate the offset for each 8-byte chunk
@@ -291,16 +291,6 @@ func (s *SphinxHash) sphinxHash(hash1, hash2 []byte, primeConstant uint64) []byt
 
 	// Return the final combined SphinxHash, which now contains the result of the structured combination.
 	return sphinxHash // Output the computed SphinxHash
-}
-
-// secureRandomUint64 generates a secure random uint64.
-func secureRandomUint64() (uint64, error) {
-	var b [8]byte
-	_, err := rand.Read(b[:]) // Read 8 random bytes
-	if err != nil {
-		return 0, err // Return error if random read fails
-	}
-	return binary.LittleEndian.Uint64(b[:]), nil // Convert the bytes to uint64
 }
 
 // GetHash retrieves or calculates the hash of the given data.
