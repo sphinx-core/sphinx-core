@@ -4,89 +4,68 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/sphinx-core/sphinx-core/src/core/wallet/crypter" // Updated import path
+	"github.com/kasperdi/SPHINCSPLUS-golang/parameters"
+	"github.com/sphinx-core/sphinx-core/src/core/sign"
+	"github.com/sphinx-core/sphinx-core/src/core/wallet/crypter"
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 func main() {
-	mk := crypter.NewMasterKey() // Updated to 'crypter.' for proper referencing
-	mk.VchCryptedKey = []byte("example_crypted_key")
-	mk.VchSalt = []byte("example_salt")
-
-	// Print before serialization
-	fmt.Printf("MasterKey before serialization: %+v\n", mk)
-
-	// Serialize
-	serialized, err := mk.Serialize()
+	// Initialize SPHINCS+ parameters
+	params := parameters.GetSha256128f() // Example: Choose appropriate parameter set
+	db, err := leveldb.OpenFile("path_to_your_db", nil)
 	if err != nil {
-		log.Fatalf("Error during serialization: %v", err)
+		log.Fatalf("Failed to open LevelDB: %v", err)
 	}
-	fmt.Printf("Serialized MasterKey: %s\n", string(serialized))
+	defer db.Close()
 
-	// Deserialize
-	newMk := crypter.NewMasterKey() // Updated to 'crypter.' here as well
-	if err := newMk.Deserialize(serialized); err != nil {
-		log.Fatalf("Error during deserialization: %v", err)
+	// Initialize the SphincsManager
+	sphincsManager := sign.NewSphincsManager(db)
+
+	// Generate secret and public keys using the sign package
+	secretKey, publicKey := sphincsManager.GenerateKeys(params)
+	fmt.Println("Generated SPHINCS+ Keys!")
+
+	// Serialize the secret key to bytes
+	secretKeyBytes, err := sphincsManager.SerializeSK(secretKey)
+	if err != nil {
+		log.Fatalf("Error serializing secret key: %v", err)
 	}
-	fmt.Printf("MasterKey after deserialization: %+v\n", newMk)
 
-	// Create a new CCrypter instance
-	crypt := &crypter.CCrypter{} // Updated to 'crypter.' to reference the correct struct
-
-	// Generate random key data and salt
+	// Encrypt the secret key using crypter
+	crypt := &crypter.CCrypter{}
 	keyData, err := crypter.GenerateRandomBytes(crypter.WALLET_CRYPTO_KEY_SIZE)
 	if err != nil {
 		log.Fatalf("Failed to generate key data: %v", err)
 	}
-	salt, err := crypter.GenerateRandomBytes(crypter.WALLET_CRYPTO_IV_SIZE) // Ensure salt size is correct
+	salt, err := crypter.GenerateRandomBytes(crypter.WALLET_CRYPTO_IV_SIZE)
 	if err != nil {
 		log.Fatalf("Failed to generate salt: %v", err)
 	}
 
-	// Log generated values for debugging
-	fmt.Printf("Generated keyData: %x\n", keyData)
-	fmt.Printf("Generated salt: %x\n", salt)
-
-	// Set the key using the key data and salt
+	// Set key from passphrase
 	if !crypt.SetKeyFromPassphrase(keyData, salt, 1000) {
 		log.Fatalf("Failed to set key from passphrase")
 	}
 
-	// Define some plaintext
-	plaintext := []byte("Hello, this is a secret message!")
-
-	// Encrypt the plaintext
-	ciphertext, err := crypt.Encrypt(plaintext)
+	// Encrypt the serialized secret key
+	encryptedSecretKey, err := crypt.Encrypt(secretKeyBytes)
 	if err != nil {
-		log.Fatalf("Failed to encrypt plaintext: %v", err)
+		log.Fatalf("Failed to encrypt secret key: %v", err)
 	}
-	fmt.Printf("Ciphertext: %x\n", ciphertext)
+	fmt.Printf("Encrypted Secret Key: %x\n", encryptedSecretKey)
 
-	// Decrypt the ciphertext
-	decryptedText, err := crypt.Decrypt(ciphertext)
+	// Optional: Decrypt the encrypted secret key to verify encryption
+	decryptedSecretKey, err := crypt.Decrypt(encryptedSecretKey)
 	if err != nil {
-		log.Fatalf("Failed to decrypt ciphertext: %v", err)
+		log.Fatalf("Failed to decrypt secret key: %v", err)
 	}
-	fmt.Printf("Decrypted text: %s\n", decryptedText)
+	fmt.Printf("Decrypted Secret Key: %x\n", decryptedSecretKey)
 
-	// Create a Uint256 IV (must be 16 bytes for AES)
-	ivBytes, err := crypter.GenerateRandomBytes(crypter.WALLET_CRYPTO_IV_SIZE) // 16 bytes
+	// Deserialize the decrypted key to verify the integrity
+	deserializedSecretKey, err := sphincsManager.DeserializeSK(params, decryptedSecretKey)
 	if err != nil {
-		log.Fatalf("Failed to generate IV: %v", err)
+		log.Fatalf("Failed to deserialize secret key: %v", err)
 	}
-	iv := crypter.BytesToUint256(ivBytes)
-
-	// Encrypt a secret
-	secret := []byte("This is a secret key!")
-	encryptedSecret, err := crypter.EncryptSecret(keyData, secret, iv)
-	if err != nil {
-		log.Fatalf("Failed to encrypt secret: %v", err)
-	}
-	fmt.Printf("Encrypted secret: %x\n", encryptedSecret)
-
-	// Decrypt the secret
-	decryptedSecret, err := crypter.DecryptSecret(keyData, encryptedSecret, iv)
-	if err != nil {
-		log.Fatalf("Failed to decrypt secret: %v", err)
-	}
-	fmt.Printf("Decrypted secret: %s\n", decryptedSecret)
+	fmt.Println("Deserialized Secret Key matches original!")
 }
