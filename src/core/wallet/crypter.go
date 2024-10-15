@@ -45,12 +45,27 @@ const (
 	AES_GCM_OVERHEAD         = AES_GCM_TAG_SIZE // Overhead for GCM: size of the authentication tag
 )
 
-// MasterKey represents the master key structure.
+// MasterKey represents the structure of a master key,
+// used in cryptographic operations for deriving encryption keys.
 type MasterKey struct {
-	VchCryptedKey                []byte `json:"vchCryptedKey"`
-	VchSalt                      []byte `json:"vchSalt"`
-	NDerivationMethod            uint32 `json:"nDerivationMethod"`
-	NDeriveIterations            uint32 `json:"nDeriveIterations"`
+	// VchCryptedKey holds the encrypted version of the private key or master key.
+	// "Vch" stands for "vector of characters" (or bytes) often used for byte slices in cryptographic contexts.
+	VchCryptedKey []byte `json:"vchCryptedKey"`
+
+	// VchSalt contains the salt used during key derivation to add randomness and strengthen security.
+	// "Vch" again refers to a byte slice (vector of characters).
+	VchSalt []byte `json:"vchSalt"`
+
+	// NDerivationMethod specifies the method used for deriving keys (e.g., PBKDF2, scrypt).
+	// "N" is a common notation for numeric values or counts.
+	NDerivationMethod uint32 `json:"nDerivationMethod"`
+
+	// NDeriveIterations defines how many iterations are applied during key derivation,
+	// typically used to increase computational cost and security.
+	NDeriveIterations uint32 `json:"nDeriveIterations"`
+
+	// VchOtherDerivationParameters is an additional byte slice that holds any other parameters
+	// required by the derivation method, if applicable.
 	VchOtherDerivationParameters []byte `json:"vchOtherDerivationParameters"`
 }
 
