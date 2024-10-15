@@ -69,32 +69,60 @@ type TxData interface {
 }
 
 // Message struct for transaction message
+// Message struct representing a transaction
 type Message struct {
-	from       common.Address
-	to         *common.Address
-	nonce      uint64
-	amount     *big.Int
-	gasLimit   uint64
-	gasPrice   *big.Int
-	gasFeeCap  *big.Int
-	gasTipCap  *big.Int
-	data       []byte
-	accessList AccessList
-	isFake     bool
+	from            common.Address
+	to              *common.Address
+	gasPrice        *big.Int
+	gasFeeCap       *big.Int
+	gasTipCap       *big.Int
+	amount          *big.Int
+	gasLimit        uint64
+	nonce           uint64
+	data            []byte
+	accessList      AccessList
+	isFake          bool
+	embeddedMessage string // Field for the embedded message
 }
 
 // Methods for Message struct
-func (m Message) From() common.Address   { return m.from }
-func (m Message) To() *common.Address    { return m.to }
-func (m Message) GasPrice() *big.Int     { return m.gasPrice }
-func (m Message) GasFeeCap() *big.Int    { return m.gasFeeCap }
-func (m Message) GasTipCap() *big.Int    { return m.gasTipCap }
-func (m Message) Value() *big.Int        { return m.amount }
-func (m Message) Gas() uint64            { return m.gasLimit }
-func (m Message) Nonce() uint64          { return m.nonce }
-func (m Message) Data() []byte           { return m.data }
-func (m Message) AccessList() AccessList { return m.accessList }
-func (m Message) IsFake() bool           { return m.isFake }
+func (m Message) From() common.Address    { return m.from }
+func (m Message) To() *common.Address     { return m.to }
+func (m Message) GasPrice() *big.Int      { return m.gasPrice }
+func (m Message) GasFeeCap() *big.Int     { return m.gasFeeCap }
+func (m Message) GasTipCap() *big.Int     { return m.gasTipCap }
+func (m Message) Value() *big.Int         { return m.amount }
+func (m Message) Gas() uint64             { return m.gasLimit }
+func (m Message) Nonce() uint64           { return m.nonce }
+func (m Message) Data() []byte            { return m.data }
+func (m Message) AccessList() AccessList  { return m.accessList }
+func (m Message) IsFake() bool            { return m.isFake }
+func (m Message) EmbeddedMessage() string { return m.embeddedMessage } // Getter for embedded message
+
+// Method to set embedded message
+func (m *Message) SetEmbeddedMessage(msg string) {
+	m.embeddedMessage = msg
+}
+
+// Function to create a new message with options to set a custom message
+func CreateMessage(from common.Address, to common.Address, amount *big.Int, gasPrice *big.Int, gasLimit uint64, nonce uint64, customMessage string) Message {
+	msg := Message{
+		from:     from,
+		to:       &to,
+		amount:   amount,
+		gasPrice: gasPrice,
+		gasLimit: gasLimit,
+		nonce:    nonce,
+		isFake:   false,
+	}
+
+	// Set the embedded message if provided
+	if customMessage != "" {
+		msg.SetEmbeddedMessage(customMessage)
+	}
+
+	return msg
+}
 
 // MarshalBinary for Transaction struct
 func (tx *Transaction) MarshalBinary() ([]byte, error) {
