@@ -258,6 +258,7 @@ func (s *SphinxHash) hashData(data []byte) []byte {
 
 // sphinxHash combines two byte slices (hash1 and hash2) using a prime constant and applies structured combinations.
 // It utilizes chaining (H∘(x) = H0(H1(x))) and concatenation (H|(x) = H0(x)|H1(x)) of hash functions to enhance pre-image and collision resistance.
+// sphinxHash combines two byte slices (hash1 and hash2) using a prime constant and applies structured combinations.
 func (s *SphinxHash) sphinxHash(hash1, hash2 []byte, primeConstant uint64) []byte {
 	// Check that both hash inputs have the same length; if not, panic with an error message.
 	if len(hash1) != len(hash2) {
@@ -275,10 +276,10 @@ func (s *SphinxHash) sphinxHash(hash1, hash2 []byte, primeConstant uint64) []byt
 	// Step 2: Initialize the output slice for the SphinxHash, with the combined length of the chained hashes.
 	sphinxHash := make([]byte, len(chainHash1)) // Using the length of chainHash1 for initialization
 
-	// Step 3: Concatenate the chained hashes and apply XOR to protect against collisions.
-	// Concatenation: H|(x) = H0(x)|H1(x)
+	// Step 3: Structured combination using a modified approach.
+	// Apply the improved combining method: hash(a)*3 + hash(b).
 	for i := range chainHash1 {
-		sphinxHash[i] = chainHash1[i] ^ chainHash2[i] // Combine bytes from both hashed values using XOR.
+		sphinxHash[i] = chainHash1[i]*3 + chainHash2[i]
 	}
 
 	// Step 4: Further manipulate the resulting hash using the prime constant for additional mixing.
@@ -287,8 +288,11 @@ func (s *SphinxHash) sphinxHash(hash1, hash2 []byte, primeConstant uint64) []byt
 		offset := i * 8 // Calculate the offset for each 8-byte chunk
 		// Add the prime constant to the current 64-bit segment of the hash,
 		// using binary little-endian format to ensure proper byte ordering.
-		binary.LittleEndian.PutUint64(sphinxHash[offset:offset+8],
-			binary.LittleEndian.Uint64(sphinxHash[offset:offset+8])+primeConstant)
+		if offset+8 <= len(sphinxHash) { // Prevent out-of-bounds access
+			val := binary.LittleEndian.Uint64(sphinxHash[offset : offset+8])
+			val += primeConstant
+			binary.LittleEndian.PutUint64(sphinxHash[offset:offset+8], val)
+		}
 	}
 
 	// Return the final combined SphinxHash, which now contains the result of the structured combination.
