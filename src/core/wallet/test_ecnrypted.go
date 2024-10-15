@@ -3,34 +3,52 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/kasperdi/SPHINCSPLUS-golang/parameters"
-	"github.com/sphinx-core/sphinx-core/src/core/sign"
+	sign "github.com/sphinx-core/sphinx-core/src/core/sphincs"
 	"github.com/sphinx-core/sphinx-core/src/core/wallet/crypter"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
 func main() {
-	// Initialize SPHINCS+ parameters
-	params := parameters.GetSha256128f() // Example: Choose appropriate parameter set
-	db, err := leveldb.OpenFile("path_to_your_db", nil)
+	// Initialize parameters for SHAKE256-robust with N = 24
+	params := parameters.MakeSphincsPlusSHAKE256192fRobust(false)
+
+	// Create the root_hashtree directory inside src/core
+	err := os.MkdirAll("root_hashtree", os.ModePerm)
 	if err != nil {
-		log.Fatalf("Failed to open LevelDB: %v", err)
+		log.Fatal("Failed to create root_hashtree directory:", err)
+	}
+
+	// Open LevelDB in the new directory
+	db, err := leveldb.OpenFile("root_hashtree/leaves_db", nil)
+	if err != nil {
+		log.Fatal("Failed to open LevelDB:", err)
 	}
 	defer db.Close()
 
-	// Initialize the SphincsManager
-	sphincsManager := sign.NewSphincsManager(db)
+	// Initialize the SphincsManager with the LevelDB instance
+	manager := sign.NewSphincsManager(db)
 
-	// Generate secret and public keys using the sign package
-	secretKey, publicKey := sphincsManager.GenerateKeys(params)
-	fmt.Println("Generated SPHINCS+ Keys!")
+	// Generate keys
+	sk, pk := manager.GenerateKeys(params)
 
 	// Serialize the secret key to bytes
-	secretKeyBytes, err := sphincsManager.SerializeSK(secretKey)
+	skBytes, err := manager.SerializeSK(sk)
 	if err != nil {
-		log.Fatalf("Error serializing secret key: %v", err)
+		log.Fatal("Failed to serialize SK:", err)
 	}
+	fmt.Printf("Secret Key (SK): %x\n", skBytes)
+	fmt.Printf("Size of Serialized SK: %d bytes\n", len(skBytes))
+
+	// Serialize the public key to bytes
+	pkBytes, err := manager.SerializePK(pk)
+	if err != nil {
+		log.Fatal("Failed to serialize PK:", err)
+	}
+	fmt.Printf("Public Key (PK): %x\n", pkBytes)
+	fmt.Printf("Size of Serialized PK: %d bytes\n", len(pkBytes))
 
 	// Encrypt the secret key using crypter
 	crypt := &crypter.CCrypter{}
@@ -49,7 +67,7 @@ func main() {
 	}
 
 	// Encrypt the serialized secret key
-	encryptedSecretKey, err := crypt.Encrypt(secretKeyBytes)
+	encryptedSecretKey, err := crypt.Encrypt(skBytes) // Use skBytes, not secretKeyBytes
 	if err != nil {
 		log.Fatalf("Failed to encrypt secret key: %v", err)
 	}
@@ -63,9 +81,10 @@ func main() {
 	fmt.Printf("Decrypted Secret Key: %x\n", decryptedSecretKey)
 
 	// Deserialize the decrypted key to verify the integrity
-	deserializedSecretKey, err := sphincsManager.DeserializeSK(params, decryptedSecretKey)
+	deserializedSecretKey, err := manager.DeserializeSK(params, decryptedSecretKey) // Use manager instead of sphincsManager
 	if err != nil {
 		log.Fatalf("Failed to deserialize secret key: %v", err)
 	}
 	fmt.Println("Deserialized Secret Key matches original!")
+	fmt.Printf("Deserialized Secret Key: %x\n", deserializedSecretKey) // Now used to print
 }
