@@ -37,6 +37,11 @@ type Transaction struct {
 	Amount *big.Int // Amount transferred, using big.Int for larger values
 }
 
+// TransactionList represents a list of transactions in the blockchain.
+type TransactionList struct {
+	Transactions []Transaction // Slice of transactions
+}
+
 // UncleBlockHeader represents the header of an uncle block.
 type UncleBlockHeader struct {
 	ParentHash string    // The hash of the uncle's parent block
@@ -61,12 +66,12 @@ type Header struct {
 // Block represents a block in the blockchain.
 type Block struct {
 	Header            Header             // The header containing metadata
-	Transactions      []Transaction      // The list of transactions in the block
+	TransactionList   TransactionList    // The list of transactions in the block
 	UncleBlockHeaders []UncleBlockHeader // The uncle block headers
 }
 
 // NewBlock creates and returns a new block with the given transactions and previous hashes.
-func NewBlock(transactions []Transaction, previousHash string, parentHash string, transactionRoot string, recipientRoot string, difficulty *big.Int, gas *big.Int, uncleBlockHeaders []UncleBlockHeader) *Block {
+func NewBlock(transactionList TransactionList, previousHash string, parentHash string, transactionRoot string, recipientRoot string, difficulty *big.Int, gas *big.Int, uncleBlockHeaders []UncleBlockHeader) *Block {
 	header := Header{
 		ParentHash:      parentHash,
 		PreviousHash:    previousHash,
@@ -81,7 +86,7 @@ func NewBlock(transactions []Transaction, previousHash string, parentHash string
 
 	block := &Block{
 		Header:            header,
-		Transactions:      transactions,
+		TransactionList:   transactionList,
 		UncleBlockHeaders: uncleBlockHeaders,
 	}
 
@@ -97,7 +102,7 @@ func (b *Block) calculateHash() string {
 		b.Header.Difficulty.String() + b.Header.Gas.String()
 
 	// Include transaction data in the hash
-	for _, tx := range b.Transactions {
+	for _, tx := range b.TransactionList.Transactions {
 		record += tx.ID + tx.From + tx.To + tx.Amount.String()
 	}
 
