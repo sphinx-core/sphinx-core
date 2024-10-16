@@ -27,9 +27,10 @@ import (
 	"log"
 	"os"
 
+	"github.com/ChyKusuma/sign"
+	"github.com/kasperdi/SPHINCSPLUS-golang/parameters"
 	"github.com/sphinx-core/sphinx-core/src/core/hashtree"
-	"github.com/sphinx-core/sphinx-core/tree/main/src/core/sphincs/keys"
-	"github.com/sphinx-core/sphinx-core/tree/main/src/core/sphincs/sign"
+	"github.com/sphinx-core/sphinx-core/src/core/sphincs/keys"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
@@ -74,7 +75,7 @@ func main() {
 
 	// Sign a message using the SignerManager
 	message := []byte("Hello, world!")
-	sig, merkleRoot, err := signerManager.SignMessage(keyManager.Params, message, sk)
+	sig, merkleRoot, err := signerManager.SignMessage(parameters.MakeSphincsPlusSHAKE256192fRobust(false), message, sk)
 	if err != nil {
 		log.Fatal("Failed to sign message:", err)
 	}
@@ -121,7 +122,7 @@ func main() {
 	hashtree.PrintRootHash(merkleRoot)
 
 	// Verify the signature and print the original message
-	isValid := signerManager.VerifySignature(keyManager.Params, message, sig, pk, merkleRoot)
+	isValid := signerManager.VerifySignature(parameters.MakeSphincsPlusSHAKE256192fRobust(false), message, sig, pk, merkleRoot)
 	fmt.Printf("Signature valid: %v\n", isValid)
 	if isValid {
 		fmt.Printf("Original Message: %s\n", message)
