@@ -70,8 +70,8 @@ type Block struct {
 	UncleBlockHeaders []UncleBlockHeader // The uncle block headers
 }
 
-// NewBlock creates and returns a new block with the given transactions and previous hashes.
-func NewBlock(transactionList TransactionList, previousHash string, parentHash string, transactionRoot string, recipientRoot string, difficulty *big.Int, gas *big.Int, uncleBlockHeaders []UncleBlockHeader) *Block {
+// nBlock creates and returns a new block with the given transactions and previous hashes.
+func nBlock(transactionList TransactionList, previousHash string, parentHash string, transactionRoot string, recipientRoot string, difficulty *big.Int, gas *big.Int, uncleBlockHeaders []UncleBlockHeader) *Block {
 	header := Header{
 		ParentHash:      parentHash,
 		PreviousHash:    previousHash,
