@@ -27,58 +27,39 @@ import (
 	"github.com/kasperdi/SPHINCSPLUS-golang/sphincs"
 )
 
-// Initialize parameters for SHAKE256-robust with N = 24
-var params = parameters.MakeSphincsPlusSHAKE256192fRobust(false)
-
-// KeyManager interface defines methods for key management and cryptographic operations
+// KeyManager interface defines methods for key management
 type KeyManager interface {
-	// GenerateKeys generates a new pair of secret and public keys based on the provided parameters
 	GenerateKeys(params *parameters.Parameters) (*sphincs.SPHINCS_SK, *sphincs.SPHINCS_PK)
-
-	// SerializeSK converts a secret key to a byte slice
 	SerializeSK(sk *sphincs.SPHINCS_SK) ([]byte, error)
-
-	// DeserializeSK converts a byte slice back into a secret key
 	DeserializeSK(params *parameters.Parameters, skBytes []byte) (*sphincs.SPHINCS_SK, error)
-
-	// SerializePK converts a public key to a byte slice
 	SerializePK(pk *sphincs.SPHINCS_PK) ([]byte, error)
-
-	// DeserializePK converts a byte slice back into a public key
 	DeserializePK(params *parameters.Parameters, pkBytes []byte) (*sphincs.SPHINCS_PK, error)
 }
 
-// SphincsKeyManager implements the KeyManager interface for SPHINCS+ key operations
-type SphincsKeyManager struct {
-	Params *parameters.Parameters // Store the parameters
+// SphincsKeyManager implements the KeyManager interface for SPHINCS+ key operations.
+type SphincsKeyManager struct{}
+
+// GenerateKeys generates a new pair of secret and public keys for SPHINCS+.
+func (km *SphincsKeyManager) GenerateKeys(params *parameters.Parameters) (*sphincs.SPHINCS_SK, *sphincs.SPHINCS_PK) {
+	return sphincs.Spx_keygen(params)
 }
 
-// NewSphincsKeyManager creates a new instance of SphincsKeyManager with the specified parameters
-func NewSphincsKeyManager() *SphincsKeyManager {
-	return &SphincsKeyManager{Params: params}
-}
-
-// GenerateKeys generates a new pair of secret and public keys using the stored parameters
-func (km *SphincsKeyManager) GenerateKeys() (*sphincs.SPHINCS_SK, *sphincs.SPHINCS_PK) {
-	return sphincs.Spx_keygen(km.Params)
-}
-
-// SerializeSK serializes the secret key (sk) into a byte slice
+// SerializeSK serializes the secret key to a byte slice.
 func (km *SphincsKeyManager) SerializeSK(sk *sphincs.SPHINCS_SK) ([]byte, error) {
-	return sk.SerializeSK() // Calls the secret key's built-in SerializeSK method
+	return sk.SerializeSK()
 }
 
-// DeserializeSK deserializes a byte slice into a secret key (sk)
-func (km *SphincsKeyManager) DeserializeSK(skBytes []byte) (*sphincs.SPHINCS_SK, error) {
-	return sphincs.DeserializeSK(km.Params, skBytes) // Use the stored parameters
+// DeserializeSK deserializes a byte slice into a secret key.
+func (km *SphincsKeyManager) DeserializeSK(params *parameters.Parameters, skBytes []byte) (*sphincs.SPHINCS_SK, error) {
+	return sphincs.DeserializeSK(params, skBytes)
 }
 
-// SerializePK serializes the public key (pk) into a byte slice
+// SerializePK serializes the public key to a byte slice.
 func (km *SphincsKeyManager) SerializePK(pk *sphincs.SPHINCS_PK) ([]byte, error) {
-	return pk.SerializePK() // Calls the public key's built-in SerializePK method
+	return pk.SerializePK()
 }
 
-// DeserializePK deserializes a byte slice into a public key (pk)
-func (km *SphincsKeyManager) DeserializePK(pkBytes []byte) (*sphincs.SPHINCS_PK, error) {
-	return sphincs.DeserializePK(km.Params, pkBytes) // Use the stored parameters
+// DeserializePK deserializes a byte slice into a public key.
+func (km *SphincsKeyManager) DeserializePK(params *parameters.Parameters, pkBytes []byte) (*sphincs.SPHINCS_PK, error) {
+	return sphincs.DeserializePK(params, pkBytes)
 }
