@@ -70,6 +70,11 @@ type Block struct {
 	UncleBlockHeaders []UncleBlockHeader // The uncle block headers
 }
 
+// Define a constant for the hardcoded hash value
+// The constant defaultHash serves as a placeholder for the initial hash value of a block when it is first created in the blockchain
+// "0x" prefix is base16 widely adopt to tell the mechine that is 256-bit value in hexadecimal format
+const defaultHash = "0x4b52f5d04adce68dbe00019747b1fc826f82449eb12c0b837b209f421099589a"
+
 // nBlock creates and returns a new block with the given transactions and previous hashes.
 func nBlock(transactionList TransactionList, previousHash string, parentHash string, transactionRoot string, recipientRoot string, difficulty *big.Int, gas *big.Int, uncleBlockHeaders []UncleBlockHeader) *Block {
 	header := Header{
@@ -77,7 +82,7 @@ func nBlock(transactionList TransactionList, previousHash string, parentHash str
 		PreviousHash:    previousHash,
 		Nonce:           big.NewInt(0), // Placeholder for nonce; set this when mining
 		Timestamp:       time.Now(),
-		Hash:            "0x4b52f5d04adce68dbe00019747b1fc826f82449eb12c0b837b209f421099589a", // 256-bit SphinxHash
+		Hash:            defaultHash, // Use the constant for the hash
 		TransactionRoot: transactionRoot,
 		RecipientRoot:   recipientRoot,
 		Difficulty:      difficulty,
