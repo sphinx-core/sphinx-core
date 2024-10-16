@@ -27,9 +27,9 @@ import (
 	"log"
 	"os"
 
+	"github.com/ChyKusuma/sign"
 	"github.com/kasperdi/SPHINCSPLUS-golang/parameters"
 	"github.com/sphinx-core/sphinx-core/src/core/hashtree"
-	sign "github.com/sphinx-core/sphinx-core/src/core/sphincs/key"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
