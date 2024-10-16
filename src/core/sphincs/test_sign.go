@@ -27,16 +27,13 @@ import (
 	"log"
 	"os"
 
-	"github.com/kasperdi/SPHINCSPLUS-golang/parameters"
 	"github.com/sphinx-core/sphinx-core/src/core/hashtree"
-	sign "github.com/sphinx-core/sphinx-core/src/core/sphincs"
+	"github.com/sphinx-core/sphinx-core/tree/main/src/core/sphincs/keys"
+	"github.com/sphinx-core/sphinx-core/tree/main/src/core/sphincs/sign"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
 func main() {
-	// Initialize parameters for SHAKE256-robust with N = 24
-	params := parameters.MakeSphincsPlusSHAKE256192fRobust(false)
-
 	// Create the root_hashtree directory inside src/core
 	err := os.MkdirAll("root_hashtree", os.ModePerm)
 	if err != nil {
@@ -50,14 +47,14 @@ func main() {
 	}
 	defer db.Close()
 
-	// Initialize the SphincsManager with the LevelDB instance
-	manager := sign.NewSphincsManager(db)
+	// Initialize the KeyManager
+	keyManager := keys.NewSphincsKeyManager()
 
-	// Generate keys
-	sk, pk := manager.GenerateKeys(params)
+	// Generate keys using the KeyManager
+	sk, pk := keyManager.GenerateKeys()
 
 	// Serialize the secret key to bytes
-	skBytes, err := manager.SerializeSK(sk)
+	skBytes, err := keyManager.SerializeSK(sk)
 	if err != nil {
 		log.Fatal("Failed to serialize SK:", err)
 	}
@@ -65,22 +62,25 @@ func main() {
 	fmt.Printf("Size of Serialized SK: %d bytes\n", len(skBytes))
 
 	// Serialize the public key to bytes
-	pkBytes, err := manager.SerializePK(pk)
+	pkBytes, err := keyManager.SerializePK(pk)
 	if err != nil {
 		log.Fatal("Failed to serialize PK:", err)
 	}
 	fmt.Printf("Public Key (PK): %x\n", pkBytes)
 	fmt.Printf("Size of Serialized PK: %d bytes\n", len(pkBytes))
 
-	// Sign a message
+	// Initialize the SignerManager
+	signerManager := sign.NewSphincsManager(db)
+
+	// Sign a message using the SignerManager
 	message := []byte("Hello, world!")
-	sig, merkleRoot, err := manager.SignMessage(params, message, sk)
+	sig, merkleRoot, err := signerManager.SignMessage(keyManager.Params, message, sk)
 	if err != nil {
 		log.Fatal("Failed to sign message:", err)
 	}
 
 	// Serialize the signature to bytes
-	sigBytes, err := manager.SerializeSignature(sig)
+	sigBytes, err := signerManager.SerializeSignature(sig)
 	if err != nil {
 		log.Fatal("Failed to serialize signature:", err)
 	}
@@ -105,24 +105,23 @@ func main() {
 	fmt.Printf("Loaded Merkle Tree Root Hash: %x\n", loadedHash)
 
 	// Save leaves to LevelDB
-	leaves := [][]byte{sigBytes} // Example usage
-	err = hashtree.SaveLeavesToDB(db, leaves)
+	err = hashtree.SaveLeavesToDB(db, [][]byte{sigBytes})
 	if err != nil {
 		log.Fatal("Failed to save leaves to DB:", err)
 	}
 
-	// Call generateRandomData to make it used
+	// Generate random data to make it used
 	randomData, err := hashtree.GenerateRandomData(16)
 	if err != nil {
 		log.Fatal("Failed to generate random data:", err)
 	}
 	fmt.Printf("Random Data: %x\n", randomData)
 
-	// Call printRootHash to make it used
+	// Print the Merkle root hash
 	hashtree.PrintRootHash(merkleRoot)
 
 	// Verify the signature and print the original message
-	isValid := manager.VerifySignature(params, message, sig, pk, merkleRoot)
+	isValid := signerManager.VerifySignature(keyManager.Params, message, sig, pk, merkleRoot)
 	fmt.Printf("Signature valid: %v\n", isValid)
 	if isValid {
 		fmt.Printf("Original Message: %s\n", message)

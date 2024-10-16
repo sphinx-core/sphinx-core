@@ -30,13 +30,22 @@ import (
 // Initialize parameters for SHAKE256-robust with N = 24
 var params = parameters.MakeSphincsPlusSHAKE256192fRobust(false)
 
-// KeyManager interface defines methods for key management
+// KeyManager interface defines methods for key management and cryptographic operations
 type KeyManager interface {
-	GenerateKeys() (*sphincs.SPHINCS_SK, *sphincs.SPHINCS_PK)
+	// GenerateKeys generates a new pair of secret and public keys based on the provided parameters
+	GenerateKeys(params *parameters.Parameters) (*sphincs.SPHINCS_SK, *sphincs.SPHINCS_PK)
+
+	// SerializeSK converts a secret key to a byte slice
 	SerializeSK(sk *sphincs.SPHINCS_SK) ([]byte, error)
-	DeserializeSK(skBytes []byte) (*sphincs.SPHINCS_SK, error)
+
+	// DeserializeSK converts a byte slice back into a secret key
+	DeserializeSK(params *parameters.Parameters, skBytes []byte) (*sphincs.SPHINCS_SK, error)
+
+	// SerializePK converts a public key to a byte slice
 	SerializePK(pk *sphincs.SPHINCS_PK) ([]byte, error)
-	DeserializePK(pkBytes []byte) (*sphincs.SPHINCS_PK, error)
+
+	// DeserializePK converts a byte slice back into a public key
+	DeserializePK(params *parameters.Parameters, pkBytes []byte) (*sphincs.SPHINCS_PK, error)
 }
 
 // SphincsKeyManager implements the KeyManager interface for SPHINCS+ key operations

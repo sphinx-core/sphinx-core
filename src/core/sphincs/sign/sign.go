@@ -33,9 +33,17 @@ import (
 
 // KeyManager interface defines methods for key management and cryptographic operations
 type KeyManager interface {
+
+	// SignMessage signs a given message using the secret key, returns the signature and the Merkle tree root node
 	SignMessage(params *parameters.Parameters, message []byte, sk *sphincs.SPHINCS_SK) (*sphincs.SPHINCS_SIG, *hashtree.HashTreeNode, error)
+
+	// VerifySignature checks if a signature is valid for a given message and public key, using the Merkle tree root node
 	VerifySignature(params *parameters.Parameters, message []byte, sig *sphincs.SPHINCS_SIG, pk *sphincs.SPHINCS_PK, merkleRoot *hashtree.HashTreeNode) bool
+
+	// SerializeSignature converts a signature to a byte slice
 	SerializeSignature(sig *sphincs.SPHINCS_SIG) ([]byte, error)
+
+	// DeserializeSignature converts a byte slice back into a signature
 	DeserializeSignature(params *parameters.Parameters, sigBytes []byte) (*sphincs.SPHINCS_SIG, error)
 }
 
