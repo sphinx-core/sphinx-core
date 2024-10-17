@@ -28,7 +28,7 @@ import (
 	"os"
 
 	"github.com/kasperdi/SPHINCSPLUS-golang/parameters"
-	sign "github.com/sphinx-core/sphinx-core/src/core/sphincs"
+	sign "github.com/sphinx-core/sphinx-core/src/core/sphincs/key"
 	"github.com/sphinx-core/sphinx-core/src/core/wallet/crypter"
 	"github.com/syndtr/goleveldb/leveldb"
 )
