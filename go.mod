@@ -9,8 +9,6 @@ require (
 )
 
 require (
-	github.com/ChyKusuma/hashtree v0.0.0-20241004092827-c2d42d1bad97 // indirect
-	github.com/ChyKusuma/sign v0.0.0-20241004092950-9f5096ac9875 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	golang.org/x/sys v0.26.0 // indirect
 )
