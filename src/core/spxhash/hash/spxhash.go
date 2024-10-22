@@ -28,7 +28,7 @@ import (
 	"encoding/binary"
 	"sync"
 
-	"golang.org/x/crypto/argon2" // Keep this line for Argon2 functionality
+	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/sha3"
 )
 
