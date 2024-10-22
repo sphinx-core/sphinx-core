@@ -147,11 +147,10 @@ type SphinxHash struct {
 const (
 	prime32     = 0x9e3779b9         // Example prime constant for 32-bit hash
 	prime64     = 0x9e3779b97f4a7c15 // Example prime constant for 64-bit hash
-	saltSize    = 16                 // Size of salt in bytes (128 bits = 16 bytes)
-	memory      = 15 * 1024 * 1024   // Memory cost set to 15 MiB (15 * 1024 * 1024 bytes)
-	iterations  = 2                  // Number of iterations for Argon2id set to 2
-	parallelism = 1                  // Degree of parallelism set to 1
-	tagSize     = 32                 // Tag size set to 256 bits (32 bytes)
+	saltSize    = 16                 // Size of salt in bytes
+	memory      = 64 * 1024          // Memory cost (64×1024 = 65536 KB) for Argon2
+	iterations  = 2                  // Number of iterations for Argon2
+	parallelism = 1                  // Number of parallel threads for Argon2
 )
 
 // NewSphinxHash creates a new SphinxHash with a specific bit size for the hash.
