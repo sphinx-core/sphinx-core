@@ -144,14 +144,14 @@ type SphinxHash struct {
 }
 
 // Define prime constants for hash calculations.
-// Define prime constants for hash calculations.
 const (
 	prime32     = 0x9e3779b9         // Example prime constant for 32-bit hash
 	prime64     = 0x9e3779b97f4a7c15 // Example prime constant for 64-bit hash
-	saltSize    = 16                 // Size of salt in bytes
-	memory      = 15 * 1024 * 1024   // Memory cost set to 15 MiB (15 * 1024 * 1024 bytes)
-	iterations  = 1                  // Number of iterations for Argon2id set to 1
-	parallelism = 1                  // Degree of parallelism set to 1
+	saltSize    = 16                 // Size of salt in bytes (128 bits = 16 bytes)
+	memory      = 64 * 1024 * 1024   // Memory cost set to 64 MiB (64 * 1024 * 1024 bytes)
+	iterations  = 3                  // Number of iterations for Argon2id set to 3
+	parallelism = 4                  // Degree of parallelism set to 4
+	tagSize     = 32                 // Tag size set to 256 bits (32 bytes)
 )
 
 // NewSphinxHash creates a new SphinxHash with a specific bit size for the hash.
