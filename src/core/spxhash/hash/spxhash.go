@@ -149,8 +149,8 @@ const (
 	prime64     = 0x9e3779b97f4a7c15 // Example prime constant for 64-bit hash
 	saltSize    = 16                 // Size of salt in bytes
 	memory      = 64 * 1024          // Memory cost (64×1024 = 65536 KB) for Argon2
-	iterations  = 4                  // Number of iterations for Argon2
-	parallelism = 6                  // Number of parallel threads for Argon2
+	iterations  = 2                  // Number of iterations for Argon2
+	parallelism = 1                  // Number of parallel threads for Argon2
 )
 
 // NewSphinxHash creates a new SphinxHash with a specific bit size for the hash.
