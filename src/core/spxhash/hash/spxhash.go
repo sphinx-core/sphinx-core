@@ -205,7 +205,7 @@ func (s *SphinxHash) Size() int {
 func (s *SphinxHash) BlockSize() int {
 	switch s.bitSize {
 	case 256:
-		return 136 // For SHAKE256 or SHA-256 (you can adjust based on SHAKE256 preference)
+		return 136 // For SHAKE256 or SHA-256 (adjust based on SHAKE256 preference)
 	case 384:
 		return 128 // For SHA-384
 	case 512:
