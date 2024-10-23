@@ -28,231 +28,190 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"time"
 )
 
+// Hash represents a fixed-size hash (32 bytes).
+type Hash [32]byte // Define a Hash type as an array of 32 bytes
+
+// MarshalText encodes h as a hex string with 0x prefix.
+func (h Hash) MarshalText() ([]byte, error) {
+	return []byte(fmt.Sprintf("0x%s", hex.EncodeToString(h[:]))), nil // Convert Hash to a hex string prefixed with "0x"
+}
+
+// UnmarshalText decodes a hex string into a Hash.
+func (h *Hash) UnmarshalText(input []byte) error {
+	if len(input) == 0 { // Check if input is empty
+		return fmt.Errorf("input cannot be empty") // Return an error if empty
+	}
+	if string(input[:2]) == "0x" { // Check if the input starts with "0x"
+		input = input[2:] // Remove the "0x" prefix
+	}
+	if len(input) != 64 { // Check if the length of the hex string is correct (64 hex characters)
+		return fmt.Errorf("invalid Hash length, expected 64 hex characters") // Return an error if invalid
+	}
+	_, err := hex.Decode(h[:], input) // Decode the hex string into the Hash
+	return err                        // Return any error encountered
+}
+
 // BlockNonce represents a nonce in the blockchain.
-type BlockNonce [8]byte
+type BlockNonce [8]byte // Define a BlockNonce type as an array of 8 bytes
 
 // EncodeNonce converts the given integer to a block nonce.
 func EncodeNonce(i uint64) BlockNonce {
-	var n BlockNonce
-	binary.BigEndian.PutUint64(n[:], i)
-	return n
+	var n BlockNonce                    // Declare a variable of type BlockNonce
+	binary.BigEndian.PutUint64(n[:], i) // Encode the uint64 integer into the BlockNonce
+	return n                            // Return the BlockNonce
 }
 
 // Uint64 returns the integer value of a block nonce.
 func (n BlockNonce) Uint64() uint64 {
-	return binary.BigEndian.Uint64(n[:])
+	return binary.BigEndian.Uint64(n[:]) // Decode the BlockNonce back to a uint64 integer
 }
 
 // MarshalText encodes n as a hex string with 0x prefix.
 func (n BlockNonce) MarshalText() ([]byte, error) {
-	return []byte(fmt.Sprintf("0x%s", hex.EncodeToString(n[:]))), nil
+	return []byte(fmt.Sprintf("0x%s", hex.EncodeToString(n[:]))), nil // Convert BlockNonce to a hex string prefixed with "0x"
 }
 
-// UnmarshalText implements encoding.TextUnmarshaler.
+// UnmarshalText decodes a hex string into a BlockNonce.
 func (n *BlockNonce) UnmarshalText(input []byte) error {
-	if len(input) == 0 {
-		return fmt.Errorf("input cannot be empty")
+	if len(input) == 0 { // Check if input is empty
+		return fmt.Errorf("input cannot be empty") // Return an error if empty
 	}
-	if input[0:2][0] == '0' && input[0:2][1] == 'x' {
-		input = input[2:] // Remove 0x prefix if it exists
+	if string(input[:2]) == "0x" { // Check if the input starts with "0x"
+		input = input[2:] // Remove the "0x" prefix
 	}
-	if len(input) != 16 {
-		return fmt.Errorf("invalid BlockNonce length")
+	if len(input) != 16 { // Check if the length of the hex string is correct (16 hex characters)
+		return fmt.Errorf("invalid BlockNonce length, expected 16 bytes") // Return an error if invalid
 	}
-	_, err := hex.Decode(n[:], input)
-	return err
-}
-
-// Transaction represents a transaction in the blockchain.
-type Transaction struct {
-	ID     string   // Unique identifier for the transaction
-	From   string   // Sender's address
-	To     string   // Receiver's address
-	Amount *big.Int // Amount transferred, using big.Int for larger values
-}
-
-// TransactionList represents a list of transactions in the blockchain.
-type TransactionList struct {
-	Transactions []Transaction // Slice of transactions
+	_, err := hex.Decode(n[:], input) // Decode the hex string into the BlockNonce
+	return err                        // Return any error encountered
 }
 
 // UncleBlockHeader represents the header of an uncle block.
 type UncleBlockHeader struct {
-	ParentHash string      // The hash of the uncle's parent block
-	Nonce      *BlockNonce // Nonce for the uncle block
-	Timestamp  time.Time   // Time when the uncle block was created
-	Hash       string      // The hash of the uncle block
+	ParentHash Hash       `json:"parent_hash"` // The hash of the uncle's parent block
+	Nonce      BlockNonce `json:"nonce"`       // Nonce for the uncle block
+	Timestamp  uint64     `json:"timestamp"`   // Time when the uncle block was created (Unix timestamp)
+	Hash       Hash       `json:"hash"`        // The hash of the uncle block
 }
 
 // Header represents the metadata of a block in the blockchain.
 type Header struct {
-	ParentHash      string      `json:"parent_hash"`      // The hash of the parent block
-	PreviousHash    string      `json:"previous_hash"`    // The hash of the previous block
-	Nonce           *BlockNonce `json:"nonce"`            // A nonce for proof-of-work
-	Timestamp       time.Time   `json:"timestamp"`        // The time when the block was created
-	Hash            string      `json:"hash"`             // The hash of the current block
-	TransactionRoot string      `json:"transaction_root"` // The root hash of the transactions in the block
-	RecipientRoot   string      `json:"recipient_root"`   // The root hash of the recipient addresses
-	Difficulty      *big.Int    `json:"difficulty"`       // The difficulty level for mining
-	Gas             *big.Int    `json:"gas"`              // The gas limit for transactions
+	ParentHash      Hash       `json:"parent_hash"`      // The hash of the parent block
+	PreviousHash    Hash       `json:"previous_hash"`    // The hash of the previous block
+	Nonce           BlockNonce `json:"nonce"`            // Nonce for proof-of-work
+	Timestamp       uint64     `json:"timestamp"`        // Time when the block was created (Unix timestamp)
+	Hash            Hash       `json:"hash"`             // The hash of the current block
+	TransactionRoot Hash       `json:"transaction_root"` // The root hash of the transactions in the block
+	RecipientRoot   Hash       `json:"recipient_root"`   // The root hash of the recipient addresses
+	StateRoot       Hash       `json:"state_root"`       // The root hash of the state
+	Difficulty      *big.Int   `json:"difficulty"`       // Difficulty for mining
+	GasLimit        *big.Int   `json:"gas_limit"`        // Gas limit for transactions
+	GasUsed         *big.Int   `json:"gas_used"`         // Gas used by the block
 }
 
 // Block represents a block in the blockchain.
 type Block struct {
-	Header            Header             // The header containing metadata
-	TransactionList   TransactionList    // The list of transactions in the block
-	UncleBlockHeaders []UncleBlockHeader // The uncle block headers
+	Header            *Header             `json:"header"`              // The header containing metadata
+	Transactions      TransactionList     `json:"transactions"`        // The list of transactions in the block
+	UncleBlockHeaders []*UncleBlockHeader `json:"uncle_block_headers"` // The uncle block headers
 }
 
-// nBlock creates and returns a new block with the given transactions and previous hashes.
-func nBlock(transactionList TransactionList, previousHash string, parentHash string, transactionRoot string, recipientRoot string, difficulty *big.Int, gas *big.Int, uncleBlockHeaders []UncleBlockHeader) *Block {
-	header := Header{
-		ParentHash:      parentHash,
-		PreviousHash:    previousHash,
-		Nonce:           big.NewInt(0), // Placeholder for nonce; set this when mining
-		Timestamp:       time.Now(),
-		TransactionRoot: transactionRoot,
-		RecipientRoot:   recipientRoot,
-		Difficulty:      difficulty,
-		Gas:             gas,
+// NewBlock creates and returns a new block.
+func NewBlock(header *Header, txs []*Transaction, uncles []*UncleBlockHeader, receipts []*Receipt, hasher TrieHasher) *Block {
+	b := &Block{Header: CopyHeader(header)} // Create a new Block and copy the header
+
+	// Panic if len(txs) != len(receipts)
+	if len(txs) != len(receipts) {
+		panic(fmt.Sprintf("transaction and receipt lengths do not match: %d vs %d", len(txs), len(receipts))) // Check for matching lengths
 	}
 
-	block := &Block{
-		Header:            header,
-		TransactionList:   transactionList,
-		UncleBlockHeaders: uncleBlockHeaders,
+	if len(txs) == 0 { // Check if there are no transactions
+		b.Header.TransactionRoot = EmptyRootHash // Set transaction root to empty hash
+	} else {
+		b.Header.TransactionRoot = DeriveSha(Transactions(txs), hasher) // Calculate transaction root hash
+		b.Transactions = make(TransactionList, len(txs))                // Create a slice for transactions
+		copy(b.Transactions, txs)                                       // Copy transactions into the block
 	}
 
-	// Perform mining to find a valid hash based on the difficulty level
-	block.mineBlock()
-	return block
+	if len(receipts) == 0 { // Check if there are no receipts
+		b.Header.ReceiptHash = EmptyRootHash // Set receipt hash to empty hash
+	} else {
+		b.Header.ReceiptHash = DeriveSha(Receipts(receipts), hasher) // Calculate receipt hash
+		b.Header.Bloom = CreateBloom(receipts)                       // Create bloom filter for receipts
+	}
+
+	if len(uncles) == 0 { // Check if there are no uncles
+		b.Header.UncleHash = EmptyUncleHash // Set uncle hash to empty hash
+	} else {
+		b.Header.UncleHash = CalcUncleHash(uncles)                   // Calculate uncle hash
+		b.UncleBlockHeaders = make([]*UncleBlockHeader, len(uncles)) // Create a slice for uncle block headers
+		for i := range uncles {                                      // Loop through uncle block headers
+			b.UncleBlockHeaders[i] = CopyUncleBlockHeader(uncles[i]) // Copy each uncle block header
+		}
+	}
+
+	return b // Return the newly created block
 }
 
-// mineBlock performs mining by adjusting the nonce until the block hash meets the difficulty requirement.
-// SanityCheck checks for basic validity of the block fields.
+// CalculateHash computes the SHA-256 hash of the block header and its transactions.
+func (b *Block) CalculateHash() Hash {
+	// Initialize a string to hold the concatenated record of the block's metadata and transaction details
+	record := hex.EncodeToString(b.Header.ParentHash[:]) + // Convert ParentHash to a hex string and append
+		hex.EncodeToString(b.Header.PreviousHash[:]) + // Convert PreviousHash to a hex string and append
+		hex.EncodeToString(b.Header.Nonce[:]) + // Convert Nonce to a hex string and append
+		fmt.Sprintf("%d", b.Header.Timestamp) + // Convert Timestamp to a string and append
+		hex.EncodeToString(b.Header.TransactionRoot[:]) + // Convert TransactionRoot to a hex string and append
+		hex.EncodeToString(b.Header.RecipientRoot[:]) + // Convert RecipientRoot to a hex string and append
+		hex.EncodeToString(b.Header.StateRoot[:]) + // Convert StateRoot to a hex string and append
+		b.Header.Difficulty.String() + // Convert Difficulty to a string and append
+		b.Header.GasLimit.String() + // Convert GasLimit to a string and append
+		b.Header.GasUsed.String() // Convert GasUsed to a string and append
+
+	// Iterate through each transaction in the block
+	for _, tx := range b.Transactions { // Loop through each transaction
+		// Append the details of the transaction (ID, From address, To address, Amount) to the record
+		record += tx.ID + tx.From + tx.To + tx.Amount.String() // Concatenate transaction details
+	}
+
+	// Iterate through each uncle block header in the block
+	for _, uncle := range b.UncleBlockHeaders { // Loop through each uncle block header
+		// Append the details of the uncle block (ParentHash, Nonce, Timestamp, Hash) to the record
+		record += hex.EncodeToString(uncle.ParentHash[:]) + // Convert ParentHash to a hex string and append
+			hex.EncodeToString(uncle.Nonce[:]) + // Convert Nonce to a hex string and append
+			fmt.Sprintf("%d", uncle.Timestamp) + // Convert Timestamp to a string and append
+			hex.EncodeToString(uncle.Hash[:]) // Convert Hash to a hex string and append
+	}
+
+	// Create a new SHA-256 hash object
+	h := sha256.New()       // Initialize SHA-256 hash function
+	h.Write([]byte(record)) // Write the concatenated record string as bytes to the hash object
+
+	var hash Hash             // Declare a variable of type Hash to hold the computed hash
+	copy(hash[:], h.Sum(nil)) // Compute the final hash and copy it into the Hash variable
+
+	return hash // Return the computed SHA-256 hash of the block
+}
+
+// SanityCheck performs basic validation on the block's fields.
 func (b *Block) SanityCheck() error {
-	// Check that ParentHash and PreviousHash are valid hashes (non-empty and length of 64 hex characters).
-	if len(b.Header.ParentHash) != 64 || len(b.Header.PreviousHash) != 64 {
-		return fmt.Errorf("invalid ParentHash or PreviousHash length")
+	if len(b.Header.ParentHash) != 32 || len(b.Header.PreviousHash) != 32 { // Check if ParentHash and PreviousHash are 32 bytes long
+		return fmt.Errorf("invalid ParentHash or PreviousHash length") // Return an error if invalid
 	}
 
-	// Check that the Nonce is a reasonable size (non-negative).
-	if b.Header.Nonce == nil || b.Header.Nonce.Sign() == -1 {
-		return fmt.Errorf("invalid Nonce value")
+	if b.Header.Timestamp == 0 { // Check if the timestamp is zero
+		return fmt.Errorf("invalid timestamp") // Return an error if invalid
 	}
 
-	// Check that the Difficulty is within a reasonable range.
-	if b.Header.Difficulty == nil || b.Header.Difficulty.Cmp(big.NewInt(0)) <= 0 || b.Header.Difficulty.Cmp(big.NewInt(1<<30)) > 0 {
-		return fmt.Errorf("unrealistic Difficulty value")
+	if b.Header.Nonce == (BlockNonce{}) { // Check if the nonce is empty
+		return fmt.Errorf("nonce cannot be empty") // Return an error if invalid
 	}
 
-	// Check that the Timestamp is not set in the future (give a little leeway for clock drift).
-	if b.Header.Timestamp.After(time.Now().Add(5 * time.Minute)) {
-		return fmt.Errorf("timestamp too far in the future")
-	}
-
-	// Check that the Gas limit is reasonable (greater than zero and less than some upper bound).
-	if b.Header.Gas == nil || b.Header.Gas.Cmp(big.NewInt(0)) <= 0 || b.Header.Gas.Cmp(big.NewInt(1<<50)) > 0 {
-		return fmt.Errorf("invalid Gas value")
-	}
-
-	// Check the hash has valid length (64 hex characters).
-	if len(b.Header.Hash) != 64 {
-		return fmt.Errorf("invalid Block Hash length")
-	}
-
-	// Check all transactions in the TransactionList.
-	for _, tx := range b.TransactionList.Transactions {
-		if err := tx.SanityCheck(); err != nil {
-			return fmt.Errorf("transaction sanity check failed: %v", err)
-		}
-	}
-
-	// Check all uncle block headers.
-	for _, uncle := range b.UncleBlockHeaders {
-		if err := uncle.SanityCheck(); err != nil {
-			return fmt.Errorf("uncle block header sanity check failed: %v", err)
-		}
-	}
-
-	return nil
+	return nil // Return nil if all checks pass
 }
 
-// SanityCheck for a Transaction.
-func (tx *Transaction) SanityCheck() error {
-	// Check that the transaction has a valid ID (non-empty and valid hash length).
-	if len(tx.ID) != 64 {
-		return fmt.Errorf("invalid Transaction ID length")
-	}
-
-	// Check that the From and To addresses are non-empty.
-	if tx.From == "" || tx.To == "" {
-		return fmt.Errorf("transaction addresses cannot be empty")
-	}
-
-	// Check that the Amount is greater than zero.
-	if tx.Amount == nil || tx.Amount.Sign() <= 0 {
-		return fmt.Errorf("invalid transaction Amount")
-	}
-
-	return nil
-}
-
-// SanityCheck for an UncleBlockHeader.
-func (uncle *UncleBlockHeader) SanityCheck() error {
-	// Check the ParentHash is a valid hash (non-empty and 64 hex characters).
-	if len(uncle.ParentHash) != 64 {
-		return fmt.Errorf("invalid Uncle ParentHash length")
-	}
-
-	// Check the Nonce is a reasonable value (non-negative).
-	if uncle.Nonce == nil || uncle.Nonce.Sign() == -1 {
-		return fmt.Errorf("invalid Uncle Nonce value")
-	}
-
-	// Check the Timestamp is not in the future.
-	if uncle.Timestamp.After(time.Now().Add(5 * time.Minute)) {
-		return fmt.Errorf("uncle block timestamp too far in the future")
-	}
-
-	// Check that the Uncle Hash is valid (64 hex characters).
-	if len(uncle.Hash) != 64 {
-		return fmt.Errorf("invalid Uncle Hash length")
-	}
-
-	return nil
-}
-
-// calculateHash computes the SHA-256 hash of the block header and its transactions.
-func (b *Block) calculateHash() string {
-	record := b.Header.ParentHash + b.Header.PreviousHash + b.Header.Nonce.String() +
-		b.Header.Timestamp.String() + b.Header.TransactionRoot + b.Header.RecipientRoot +
-		b.Header.Difficulty.String() + b.Header.Gas.String()
-
-	// Include transaction data in the hash
-	for _, tx := range b.TransactionList.Transactions {
-		record += tx.ID + tx.From + tx.To + tx.Amount.String()
-	}
-
-	// Include uncle block headers in the hash
-	for _, uncle := range b.UncleBlockHeaders {
-		record += uncle.ParentHash + uncle.Nonce.String() + uncle.Timestamp.String() + uncle.Hash
-	}
-
-	h := sha256.New()
-	h.Write([]byte(record))
-	return hex.EncodeToString(h.Sum(nil))
-}
-
-// SetNonce sets the nonce for the block.
-func (b *Block) SetNonce(nonce *big.Int) {
-	b.Header.Nonce = nonce
-}
-
-// GetHash returns the hash of the block.
-func (b *Block) GetHash() string {
-	return b.Header.Hash
+// String returns a string representation of the block.
+func (b *Block) String() string {
+	return fmt.Sprintf("Block{Header: %v, Transactions: %d, Uncles: %d}", b.Header, len(b.Transactions), len(b.UncleBlockHeaders)) // Format block details as a string
 }
