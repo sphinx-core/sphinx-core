@@ -9,7 +9,7 @@ import (
 
 func main() {
 	// Generate passphrase and passkey
-	passphrase, base32Passkey, err := seed.GeneratePassphraseAndPasskey()
+	passphrase, base32Passkey, err := seed.GenerateKeys()
 	if err != nil {
 		log.Fatalf("Error generating passphrase and passkey: %v", err)
 	}

@@ -120,7 +120,7 @@ func EncodeBase32(data []byte) string {
 }
 
 // GeneratePassphraseAndPasskey generates a passphrase and a hashed, Base32-encoded passkey.
-func GeneratePassphraseAndPasskey() (passphrase string, base32Passkey string, err error) {
+func GenerateKeys() (passphrase string, base32Passkey string, err error) {
 	// Generate entropy
 	entropy, err := GenerateEntropy()
 	if err != nil {
