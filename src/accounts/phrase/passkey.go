@@ -32,32 +32,28 @@ import (
 	"github.com/tyler-smith/go-bip39"
 	"golang.org/x/crypto/hkdf"
 	"golang.org/x/crypto/ripemd160"
-	"golang.org/x/crypto/sha3"
 )
 
 const (
-	EntropySize = 32 // 256 bits entropy
+	// Change the entropy size for a 12-word mnemonic
+	EntropySize = 16 // 128 bits for 12-word mnemonic
 	SaltSize    = 16 // 128 bits salt size
 	PasskeySize = 64 // 512 bits output passkey length
 )
 
-// GenerateEntropy generates secure random entropy for private key generation, and hashes it using SHA3-512.
+// GenerateEntropy generates secure random entropy for private key generation.
 func GenerateEntropy() ([]byte, error) {
 	entropy := make([]byte, EntropySize)
 	_, err := rand.Read(entropy)
 	if err != nil {
 		return nil, fmt.Errorf("error generating entropy: %v", err)
 	}
-
-	// Hash the entropy using SHA3-512
-	hashedEntropy := sha3.Sum512(entropy)
-
-	// Return the first 32 bytes (256 bits) of the hashed entropy as the final entropy
-	return hashedEntropy[:EntropySize], nil
+	return entropy, nil // Return the raw entropy for BIP-39
 }
 
 // GeneratePassphrase generates a BIP-39 passphrase from entropy.
 func GeneratePassphrase(entropy []byte) (string, error) {
+	// Directly use the entropy to generate the mnemonic
 	passphrase, err := bip39.NewMnemonic(entropy)
 	if err != nil {
 		return "", fmt.Errorf("error generating passphrase: %v", err)
