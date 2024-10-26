@@ -26,6 +26,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/binary"
+	"io"
 	"sync"
 
 	"golang.org/x/crypto/argon2"
@@ -304,4 +305,18 @@ func (s *SphinxHash) GetHash(data []byte) []byte {
 	s.cache.Put(hashKey, hash) // Store the calculated hash in the cache
 
 	return hash // Return the calculated hash
+}
+
+// Read reads from the hash data into p.
+// This satisfies the io.Reader interface for SphinxHash.
+func (s *SphinxHash) Read(p []byte) (n int, err error) {
+	// Calculate the hash for the data stored in the SphinxHash instance
+	hash := s.GetHash(s.data)
+
+	// Copy the hash into the provided buffer p
+	n = copy(p, hash)
+	if n < len(hash) {
+		return n, io.EOF // Return EOF if the buffer is smaller than the hash
+	}
+	return n, nil
 }

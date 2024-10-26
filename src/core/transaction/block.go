@@ -90,10 +90,10 @@ func (n *BlockNonce) UnmarshalText(input []byte) error {
 
 // UncleBlockHeader represents the header of an uncle block.
 type UncleBlockHeader struct {
-	ParentHash Hash       `json:"parent_hash"` // The hash of the uncle's parent block
-	Nonce      BlockNonce `json:"nonce"`       // Nonce for the uncle block
-	Timestamp  uint64     `json:"timestamp"`   // Time when the uncle block was created (Unix timestamp)
-	Hash       Hash       `json:"hash"`        // The hash of the uncle block
+	ParentHash Hash       `json:"parentHash"` // The hash of the uncle's parent block
+	Nonce      BlockNonce `json:"nonce"`      // Nonce for the uncle block
+	Timestamp  uint64     `json:"timestamp"`  // Time when the uncle block was created (Unix timestamp)
+	RootHash   RootHash   `json:"Roothash"`   // The hash of the uncle block
 }
 
 // Header represents the metadata of a block in the blockchain.
@@ -102,7 +102,7 @@ type Header struct {
 	PreviousHash    Hash       `json:"previous_hash"`    // The hash of the previous block
 	Nonce           BlockNonce `json:"nonce"`            // Nonce for proof-of-work
 	Timestamp       uint64     `json:"timestamp"`        // Time when the block was created (Unix timestamp)
-	Hash            Hash       `json:"hash"`             // The hash of the current block
+	RootHash        RootHash   `json:"RootHash"`         // The hash of the current block
 	TransactionRoot Hash       `json:"transaction_root"` // The root hash of the transactions in the block
 	RecipientRoot   Hash       `json:"recipient_root"`   // The root hash of the recipient addresses
 	StateRoot       Hash       `json:"state_root"`       // The root hash of the state
