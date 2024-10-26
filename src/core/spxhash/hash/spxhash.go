@@ -176,6 +176,33 @@ func generateRandomSalt() []byte {
 	return salt
 }
 
+// GetHash retrieves or calculates the hash of the given data.
+func (s *SphinxHash) GetHash(data []byte) []byte {
+	hashKey := binary.LittleEndian.Uint64(data[:8]) // Generate a unique key for caching
+	if cachedValue, found := s.cache.Get(hashKey); found {
+		return cachedValue // Return cached value if found
+	}
+
+	hash := s.hashData(data)   // Calculate the hash if not found in cache
+	s.cache.Put(hashKey, hash) // Store the calculated hash in the cach
+
+	return hash // Return the calculated hash
+}
+
+// Read reads from the hash data into p.
+// This satisfies the io.Reader interface for SphinxHash.
+func (s *SphinxHash) Read(p []byte) (n int, err error) {
+	// Calculate the hash for the data stored in the SphinxHash instance
+	hash := s.GetHash(s.data)
+
+	// Copy the hash into the provided buffer p
+	n = copy(p, hash)
+	if n < len(hash) {
+		return n, io.EOF // Return EOF if the buffer is smaller than the hash
+	}
+	return n, nil
+}
+
 // Write adds data to the hash.
 func (s *SphinxHash) Write(p []byte) (n int, err error) {
 	s.data = append(s.data, p...) // Append new data to the existing data
@@ -292,31 +319,4 @@ func (s *SphinxHash) sphinxHash(hash1, hash2 []byte, primeConstant uint64) []byt
 
 	// Return the final combined SphinxHash, which now contains the result of the structured combination.
 	return sphinxHash // Output the computed SphinxHash
-}
-
-// GetHash retrieves or calculates the hash of the given data.
-func (s *SphinxHash) GetHash(data []byte) []byte {
-	hashKey := binary.LittleEndian.Uint64(data[:8]) // Generate a unique key for caching
-	if cachedValue, found := s.cache.Get(hashKey); found {
-		return cachedValue // Return cached value if found
-	}
-
-	hash := s.hashData(data)   // Calculate the hash if not found in cache
-	s.cache.Put(hashKey, hash) // Store the calculated hash in the cache
-
-	return hash // Return the calculated hash
-}
-
-// Read reads from the hash data into p.
-// This satisfies the io.Reader interface for SphinxHash.
-func (s *SphinxHash) Read(p []byte) (n int, err error) {
-	// Calculate the hash for the data stored in the SphinxHash instance
-	hash := s.GetHash(s.data)
-
-	// Copy the hash into the provided buffer p
-	n = copy(p, hash)
-	if n < len(hash) {
-		return n, io.EOF // Return EOF if the buffer is smaller than the hash
-	}
-	return n, nil
 }
