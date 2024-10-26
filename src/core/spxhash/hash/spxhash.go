@@ -259,13 +259,13 @@ func (s *SphinxHash) hashData(data []byte) []byte {
 	shakeHash := make([]byte, 32) // 256 bits = 32 bytes
 	shake.Read(shakeHash)
 
-	// Step 3: Combine the hashes using SphinxHash without prime32
-	return s.sphinxHash(sha2Hash, shakeHash) // Combine SHA-256 and SHAKE256 results
+	// Step 3: Combine the hashes using SphinxHash
+	return s.sphinxHash(sha2Hash, shakeHash, prime32) // Combine SHA-256 and SHAKE256 results
 }
 
-// sphinxHash combines two byte slices (hash1 and hash2) without using a prime constant and applies structured combinations.
+// sphinxHash combines two byte slices (hash1 and hash2) using a prime constant and applies structured combinations.
 // It utilizes chaining (H∘(x) = H0(H1(x))) and concatenation (H|(x) = H0(x)|H1(x)) of hash functions to enhance pre-image and collision resistance.
-func (s *SphinxHash) sphinxHash(hash1, hash2 []byte) []byte {
+func (s *SphinxHash) sphinxHash(hash1, hash2 []byte, primeConstant uint64) []byte {
 	// Check that both hash inputs have the same length; if not, panic with an error message.
 	if len(hash1) != len(hash2) {
 		panic("hash1 and hash2 must have the same length") // Ensures both hashes are of the same length for consistent processing
@@ -286,6 +286,32 @@ func (s *SphinxHash) sphinxHash(hash1, hash2 []byte) []byte {
 	// Apply the improved combining method: hash(a)*3 + hash(b).
 	for i := range chainHash1 {
 		sphinxHash[i] = chainHash1[i]*3 + chainHash2[i]
+	}
+
+	// Step 4: Further manipulate the resulting hash using the prime constant for additional mixing.
+	// This step enhances the entropy and security of the resulting hash.
+	// The manipulation is done in chunks of 8 bytes (uint64) for efficiency,
+	// as processing 64-bit values is typically faster on modern architectures.
+	for i := 0; i < len(sphinxHash)/8; i++ {
+		offset := i * 8 // Calculate the offset for each 8-byte chunk
+
+		// Check if the offset plus 8 bytes is within the bounds of the hash slice.
+		// This prevents out-of-bounds access when working with the final hash.
+		if offset+8 <= len(sphinxHash) {
+			// Read the current 64-bit segment of the hash using binary little-endian format.
+			// This ensures that the byte order is interpreted correctly for the system's architecture.
+			val := binary.LittleEndian.Uint64(sphinxHash[offset : offset+8])
+
+			// Add the prime constant to the current value.
+			// This mixing step adds additional entropy to the hash,
+			// making it less predictable and improving collision resistance.
+			val += primeConstant
+
+			// Write the updated value back to the original slice,
+			// ensuring that the modified 64-bit value replaces the old value
+			// at the same offset in the hash.
+			binary.LittleEndian.PutUint64(sphinxHash[offset:offset+8], val)
+		}
 	}
 
 	// Return the final combined SphinxHash, which now contains the result of the structured combination.
