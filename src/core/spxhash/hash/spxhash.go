@@ -159,10 +159,9 @@ const (
 func NewSphinxHash(bitSize int, maxCacheSize int) *SphinxHash {
 	return &SphinxHash{
 		bitSize:      bitSize,
-		data:         nil,
-		salt:         generateRandomSalt(),      // Generate random salt
-		cache:        NewLRUCache(maxCacheSize), // Initialize LRU cache
-		maxCacheSize: maxCacheSize,              // Set maximum cache size
+		salt:         generateRandomSalt(),
+		cache:        NewLRUCache(maxCacheSize),
+		maxCacheSize: maxCacheSize,
 	}
 }
 
@@ -178,19 +177,18 @@ func generateRandomSalt() []byte {
 
 // GetHash retrieves or calculates the hash of the given data.
 func (s *SphinxHash) GetHash(data []byte) []byte {
-	hashKey := binary.LittleEndian.Uint64(data[:8]) // Generate a unique key for caching
+	hashKey := binary.LittleEndian.Uint64(data[:8]) // Ensure the key is unique based on the data
 	if cachedValue, found := s.cache.Get(hashKey); found {
 		return cachedValue // Return cached value if found
 	}
 
 	hash := s.hashData(data)   // Calculate the hash if not found in cache
-	s.cache.Put(hashKey, hash) // Store the calculated hash in the cach
+	s.cache.Put(hashKey, hash) // Store the calculated hash in the cache
 
 	return hash // Return the calculated hash
 }
 
 // Read reads from the hash data into p.
-// This satisfies the io.Reader interface for SphinxHash.
 func (s *SphinxHash) Read(p []byte) (n int, err error) {
 	// Calculate the hash for the data stored in the SphinxHash instance
 	hash := s.GetHash(s.data)
@@ -244,7 +242,6 @@ func (s *SphinxHash) BlockSize() int {
 }
 
 // hashData calculates the combined hash of data using multiple hash functions based on the bit size.
-// It computes SHA-256 and SHAKE256 based on the stretched key and combines them using SphinxHash.
 func (s *SphinxHash) hashData(data []byte) []byte {
 	var sha2Hash []byte
 
