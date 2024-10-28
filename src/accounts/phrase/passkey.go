@@ -29,6 +29,7 @@ import (
 	"fmt"
 	"io"
 
+	spxhash "github.com/sphinx-core/sphinx-core/src/core/spxhash/hash"
 	"github.com/tyler-smith/go-bip39"
 	"golang.org/x/crypto/hkdf"
 	"golang.org/x/crypto/ripemd160"
@@ -116,14 +117,22 @@ func GeneratePasskey(passphrase string) ([]byte, error) {
 }
 
 // HashPasskey hashes the passkey using SHA-256 and then applies RIPEMD-160.
+// HashPasskey hashes the passkey using SphinxHash and then applies RIPEMD-160.
 func HashPasskey(passkey []byte) ([]byte, error) {
-	// First hash the passkey using SHA-256
-	hashSHA256 := sha256.Sum256(passkey)
+	// Initialize SphinxHash with 256-bit output size and cache size
+	sphinx := spxhash.NewSphinxHash(256, 10)
 
-	// Then hash the SHA-256 result using RIPEMD-160
+	// Write passkey data to SphinxHash instance
+	if _, err := sphinx.Write(passkey); err != nil {
+		return nil, fmt.Errorf("error writing passkey data to SphinxHash: %v", err)
+	}
+
+	// Retrieve the computed hash
+	hash := sphinx.Sum(nil) // Sum with nil appends the hash to an empty slice
+
+	// Then hash the SphinxHash result using RIPEMD-160
 	hashRIPEMD160 := ripemd160.New()
-	_, err := hashRIPEMD160.Write(hashSHA256[:])
-	if err != nil {
+	if _, err := hashRIPEMD160.Write(hash); err != nil {
 		return nil, fmt.Errorf("error hashing with RIPEMD-160: %v", err)
 	}
 
