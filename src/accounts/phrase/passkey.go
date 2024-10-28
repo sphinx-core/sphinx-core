@@ -118,7 +118,7 @@ func GeneratePasskey(passphrase string) ([]byte, error) {
 // HashPasskey hashes the passkey using SphinxHash and then applies RIPEMD-160.
 func HashPasskey(passkey []byte) ([]byte, error) {
 	// Initialize SphinxHash with 256-bit output size and cache size
-	sphinx := spxhash.NewSphinxHash(256, 10)
+	sphinx := spxhash.NewSphinxHash(256)
 
 	// Write passkey data to SphinxHash instance
 	if _, err := sphinx.Write(passkey); err != nil {

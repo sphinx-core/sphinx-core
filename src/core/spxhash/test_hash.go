@@ -31,7 +31,7 @@ import (
 
 func main() {
 	// Initialize a new SphinxHash with a desired bit size (256, 384, or 512) and maximum cache size
-	sphinx := spxhash.NewSphinxHash(256, 10) // 10 is the maximum cache size
+	sphinx := spxhash.NewSphinxHash(256) // 10 is the maximum cache size
 
 	// Sample data to hash
 	data := []byte("Hello, SphinxHash!")
