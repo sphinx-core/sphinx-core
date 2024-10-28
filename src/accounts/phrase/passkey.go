@@ -39,6 +39,7 @@ const (
 	EntropySize = 16 // 128 bits for 12-word mnemonic
 	SaltSize    = 16 // 128 bits salt size
 	PasskeySize = 64 // 512 bits output passkey length
+	NonceSize   = 8  // 64 bits nonce size, adjustable as needed
 )
 
 // GenerateEntropy generates secure random entropy for private key generation.
@@ -72,18 +73,38 @@ func GenerateSalt() ([]byte, error) {
 }
 
 // GeneratePasskey generates a passkey using a passphrase with HKDF (HMAC-based Key Derivation Function) and a random salt.
+// NonceSize defines the length of the nonce for added randomness.
+// GenerateNonce generates a cryptographically secure random nonce.
+func GenerateNonce() ([]byte, error) {
+	nonce := make([]byte, NonceSize)
+	_, err := rand.Read(nonce)
+	if err != nil {
+		return nil, fmt.Errorf("error generating nonce: %v", err)
+	}
+	return nonce, nil
+}
+
+// GeneratePasskey generates a passkey using a passphrase with HKDF and a random salt plus nonce.
 func GeneratePasskey(passphrase string) ([]byte, error) {
-	// Use the passphrase as input key material
 	ikm := []byte(passphrase)
 
-	// Generate a random salt
+	// Generate random salt
 	salt, err := GenerateSalt()
 	if err != nil {
 		return nil, fmt.Errorf("error generating salt: %v", err)
 	}
 
-	// HKDF with SHA-256 to derive a passkey using the generated salt
-	hkdf := hkdf.New(sha256.New, ikm, salt, nil)
+	// Generate a random nonce
+	nonce, err := GenerateNonce()
+	if err != nil {
+		return nil, fmt.Errorf("error generating nonce: %v", err)
+	}
+
+	// Combine salt and nonce
+	combinedSalt := append(salt, nonce...)
+
+	// HKDF with SHA-256 using combined salt
+	hkdf := hkdf.New(sha256.New, ikm, combinedSalt, nil)
 	passkey := make([]byte, PasskeySize)
 
 	// Read the derived passkey from the HKDF output
