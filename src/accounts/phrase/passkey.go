@@ -43,9 +43,9 @@ const (
 )
 
 // PasskeySize is calculated based on the nonce size.
-// For example, you can set the PasskeySize to be 8 times the nonce size.
+// Here we set it to be equal to the NonceSize for shorter passkeys.
 func PasskeySize() int {
-	return NonceSize * 8 // Adjust this multiplier as needed
+	return NonceSize // Adjust this value as needed
 }
 
 // GenerateSalt generates a cryptographically secure random salt.
