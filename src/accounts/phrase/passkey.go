@@ -24,14 +24,12 @@ package seed
 
 import (
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/base32"
 	"fmt"
-	"io"
 
 	spxhash "github.com/sphinx-core/sphinx-core/src/core/spxhash/hash"
 	"github.com/tyler-smith/go-bip39"
-	"golang.org/x/crypto/hkdf"
+	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/ripemd160"
 )
 
@@ -39,8 +37,14 @@ const (
 	// Change the entropy size for a 12-word mnemonic
 	EntropySize = 16 // 128 bits for 12-word mnemonic
 	SaltSize    = 16 // 128 bits salt size
-	PasskeySize = 16 // Set this to 16 bytes for a 16 character output
+	PasskeySize = 32 // Set this to 32 bytes for a 256-bit output
 	NonceSize   = 8  // 64 bits nonce size, adjustable as needed
+
+	// Argon2 parameters
+	memory      = 64 * 1024 // Memory cost set to 64 KiB (64 * 1024 bytes)
+	iterations  = 2         // Number of iterations for Argon2id set to 2
+	parallelism = 1         // Degree of parallelism set to 1
+	tagSize     = 32        // Tag size set to 256 bits (32 bytes)
 )
 
 // GenerateSalt generates a cryptographically secure random salt.
@@ -84,7 +88,7 @@ func GeneratePassphrase(entropy []byte) (string, error) {
 	return passphrase, nil
 }
 
-// GeneratePasskey generates a passkey using a passphrase with HKDF and a random salt plus nonce.
+// GeneratePasskey generates a passkey using Argon2 and a random salt plus nonce.
 func GeneratePasskey(passphrase string) ([]byte, error) {
 	ikm := []byte(passphrase)
 
@@ -103,15 +107,8 @@ func GeneratePasskey(passphrase string) ([]byte, error) {
 	// Combine salt and nonce
 	combinedSalt := append(salt, nonce...)
 
-	// HKDF with SHA-256 using combined salt
-	hkdf := hkdf.New(sha256.New, ikm, combinedSalt, nil)
-	passkey := make([]byte, PasskeySize)
-
-	// Read the derived passkey from the HKDF output
-	_, err = io.ReadFull(hkdf, passkey)
-	if err != nil {
-		return nil, fmt.Errorf("error generating passkey using HKDF: %v", err)
-	}
+	// Use Argon2 to generate the passkey
+	passkey := argon2.IDKey(ikm, combinedSalt, iterations, memory, parallelism, PasskeySize)
 	return passkey, nil
 }
 
@@ -157,7 +154,7 @@ func GenerateKeys() (passphrase string, base32Passkey string, err error) {
 		return "", "", fmt.Errorf("failed to generate passphrase: %v", err)
 	}
 
-	// Generate passkey using HKDF and random salt
+	// Generate passkey using Argon2 and random salt
 	passkey, err := GeneratePasskey(passphrase)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to generate passkey: %v", err)
