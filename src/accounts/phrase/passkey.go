@@ -116,7 +116,6 @@ func GeneratePasskey(passphrase string) ([]byte, error) {
 	return passkey, nil
 }
 
-// HashPasskey hashes the passkey using SHA-256 and then applies RIPEMD-160.
 // HashPasskey hashes the passkey using SphinxHash and then applies RIPEMD-160.
 func HashPasskey(passkey []byte) ([]byte, error) {
 	// Initialize SphinxHash with 256-bit output size and cache size
