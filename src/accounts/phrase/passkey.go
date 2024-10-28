@@ -39,7 +39,7 @@ const (
 	// Change the entropy size for a 12-word mnemonic
 	EntropySize = 16 // 128 bits for 12-word mnemonic
 	SaltSize    = 16 // 128 bits salt size
-	PasskeySize = 64 // 512 bits output passkey length
+	PasskeySize = 16 // Set this to 16 bytes for a 16 character output
 	NonceSize   = 8  // 64 bits nonce size, adjustable as needed
 )
 
@@ -169,8 +169,11 @@ func GenerateKeys() (passphrase string, base32Passkey string, err error) {
 		return "", "", fmt.Errorf("failed to hash passkey: %v", err)
 	}
 
-	// Encode the hashed passkey in Base32
+	// Encode the hashed passkey in Base32 and truncate to 16 characters
 	base32Passkey = EncodeBase32(hashedPasskey)
+	if len(base32Passkey) > 16 {
+		base32Passkey = base32Passkey[:16] // Truncate to 16 characters
+	}
 
 	return passphrase, base32Passkey, nil
 }
