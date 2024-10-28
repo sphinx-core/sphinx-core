@@ -39,7 +39,7 @@ const (
 	// Change the entropy size for a 12-word mnemonic
 	EntropySize = 16 // 128 bits for 12-word mnemonic
 	SaltSize    = 16 // 128 bits salt size
-	PasskeySize = 64 // 512 bits output passkey length
+	PasskeySize = 32 // 256 bits output passkey length
 	NonceSize   = 8  // 64 bits nonce size, adjustable as needed
 )
 
