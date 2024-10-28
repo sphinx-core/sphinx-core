@@ -53,7 +53,6 @@ func GenerateSalt() ([]byte, error) {
 	return salt, nil
 }
 
-// GeneratePasskey generates a passkey using a passphrase with HKDF (HMAC-based Key Derivation Function) and a random salt.
 // NonceSize defines the length of the nonce for added randomness.
 // GenerateNonce generates a cryptographically secure random nonce.
 func GenerateNonce() ([]byte, error) {
