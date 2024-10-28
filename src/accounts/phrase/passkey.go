@@ -41,7 +41,7 @@ const (
 	NonceSize   = 8  // 64 bits nonce size, adjustable as needed
 
 	// Argon2 parameters
-	// Argon memory standard that is required minimum 15Mib memory in allocation
+	// Argon memory standard that is required minimum 15MiB memory in allocation
 	memory      = 64 * 1024 // Memory cost set to 64 KiB (64 * 1024 bytes)
 	iterations  = 2         // Number of iterations for Argon2id set to 2
 	parallelism = 1         // Degree of parallelism set to 1
