@@ -170,7 +170,7 @@ func GenerateKeys() (passphrase string, base32Passkey string, err error) {
 	// Encode the hashed passkey in Base32 and truncate to 16 characters
 	base32Passkey = EncodeBase32(hashedPasskey)
 	if len(base32Passkey) > 16 {
-		base32Passkey = base32Passkey[:16] // Truncate to 16 characters
+		base32Passkey = base32Passkey[:16] // Truncate to 16 bytes
 	}
 
 	return passphrase, base32Passkey, nil
