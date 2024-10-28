@@ -42,26 +42,6 @@ const (
 	NonceSize   = 8  // 64 bits nonce size, adjustable as needed
 )
 
-// GenerateEntropy generates secure random entropy for private key generation.
-func GenerateEntropy() ([]byte, error) {
-	entropy := make([]byte, EntropySize)
-	_, err := rand.Read(entropy)
-	if err != nil {
-		return nil, fmt.Errorf("error generating entropy: %v", err)
-	}
-	return entropy, nil // Return the raw entropy for BIP-39
-}
-
-// GeneratePassphrase generates a BIP-39 passphrase from entropy.
-func GeneratePassphrase(entropy []byte) (string, error) {
-	// Directly use the entropy to generate the mnemonic
-	passphrase, err := bip39.NewMnemonic(entropy)
-	if err != nil {
-		return "", fmt.Errorf("error generating passphrase: %v", err)
-	}
-	return passphrase, nil
-}
-
 // GenerateSalt generates a cryptographically secure random salt.
 func GenerateSalt() ([]byte, error) {
 	salt := make([]byte, SaltSize)
@@ -82,6 +62,26 @@ func GenerateNonce() ([]byte, error) {
 		return nil, fmt.Errorf("error generating nonce: %v", err)
 	}
 	return nonce, nil
+}
+
+// GenerateEntropy generates secure random entropy for private key generation.
+func GenerateEntropy() ([]byte, error) {
+	entropy := make([]byte, EntropySize)
+	_, err := rand.Read(entropy)
+	if err != nil {
+		return nil, fmt.Errorf("error generating entropy: %v", err)
+	}
+	return entropy, nil // Return the raw entropy for BIP-39
+}
+
+// GeneratePassphrase generates a BIP-39 passphrase from entropy.
+func GeneratePassphrase(entropy []byte) (string, error) {
+	// Directly use the entropy to generate the mnemonic
+	passphrase, err := bip39.NewMnemonic(entropy)
+	if err != nil {
+		return "", fmt.Errorf("error generating passphrase: %v", err)
+	}
+	return passphrase, nil
 }
 
 // GeneratePasskey generates a passkey using a passphrase with HKDF and a random salt plus nonce.
