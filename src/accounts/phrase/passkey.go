@@ -39,14 +39,9 @@ const (
 	// Change the entropy size for a 12-word mnemonic
 	EntropySize = 16 // 128 bits for 12-word mnemonic
 	SaltSize    = 16 // 128 bits salt size
+	PasskeySize = 64 // 512 bits output passkey length
 	NonceSize   = 8  // 64 bits nonce size, adjustable as needed
 )
-
-// PasskeySize is calculated based on the nonce size.
-// Here we set it to be equal to the NonceSize for shorter passkeys.
-func PasskeySize() int {
-	return NonceSize // Adjust this value as needed
-}
 
 // GenerateSalt generates a cryptographically secure random salt.
 func GenerateSalt() ([]byte, error) {
@@ -58,6 +53,7 @@ func GenerateSalt() ([]byte, error) {
 	return salt, nil
 }
 
+// NonceSize defines the length of the nonce for added randomness.
 // GenerateNonce generates a cryptographically secure random nonce.
 func GenerateNonce() ([]byte, error) {
 	nonce := make([]byte, NonceSize)
@@ -109,7 +105,7 @@ func GeneratePasskey(passphrase string) ([]byte, error) {
 
 	// HKDF with SHA-256 using combined salt
 	hkdf := hkdf.New(sha256.New, ikm, combinedSalt, nil)
-	passkey := make([]byte, PasskeySize()) // Use the dynamic PasskeySize
+	passkey := make([]byte, PasskeySize)
 
 	// Read the derived passkey from the HKDF output
 	_, err = io.ReadFull(hkdf, passkey)
