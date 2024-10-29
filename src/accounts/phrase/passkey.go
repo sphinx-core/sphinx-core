@@ -42,6 +42,7 @@ const (
 	NonceSize   = 8  // 64 bits nonce size, adjustable as needed
 
 	// Argon2 parameters for password hashing
+	// Argon memory standard that is required minimum 15MiB memory in allocation
 	memory      = 64 * 1024 // Memory cost set to 64 KiB (64 * 1024 bytes)
 	iterations  = 2         // Number of iterations for Argon2id set to 2
 	parallelism = 1         // Degree of parallelism set to 1
@@ -94,7 +95,7 @@ func GeneratePassphrase(entropy []byte) (string, error) {
 
 // GeneratePasskey generates a passkey using Argon2 and a random salt plus nonce.
 func GeneratePasskey(passphrase string) ([]byte, error) {
-	ikm := []byte(passphrase)   // Convert the passphrase to a byte slice
+	ikm := []byte(passphrase)   // Convert the input key material (passphrase) to a byte slice
 	salt, err := GenerateSalt() // Generate a random salt
 	if err != nil {
 		// Return an error if salt generation fails
