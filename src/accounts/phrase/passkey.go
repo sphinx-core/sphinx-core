@@ -81,7 +81,6 @@ func GenerateEntropy() ([]byte, error) {
 
 // GeneratePassphrase generates a BIP-39 passphrase from entropy.
 func GeneratePassphrase(entropy []byte) (string, error) {
-	// Directly use the entropy to generate the mnemonic
 	passphrase, err := bip39.NewMnemonic(entropy)
 	if err != nil {
 		return "", fmt.Errorf("error generating passphrase: %v", err)
@@ -92,87 +91,63 @@ func GeneratePassphrase(entropy []byte) (string, error) {
 // GeneratePasskey generates a passkey using Argon2 and a random salt plus nonce.
 func GeneratePasskey(passphrase string) ([]byte, error) {
 	ikm := []byte(passphrase)
-
-	// Generate random salt
 	salt, err := GenerateSalt()
 	if err != nil {
 		return nil, fmt.Errorf("error generating salt: %v", err)
 	}
-
-	// Generate a random nonce
 	nonce, err := GenerateNonce()
 	if err != nil {
 		return nil, fmt.Errorf("error generating nonce: %v", err)
 	}
-
-	// Combine salt and nonce
 	combinedSalt := append(salt, nonce...)
-
-	// Use Argon2 to generate the passkey
 	passkey := argon2.IDKey(ikm, combinedSalt, iterations, memory, parallelism, PasskeySize)
 	return passkey, nil
 }
 
 // HashPasskey hashes the passkey using SphinxHash and then applies RIPEMD-160.
 func HashPasskey(passkey []byte) ([]byte, error) {
-	// Initialize SphinxHash with 256-bit output size and cache size
 	sphinx := spxhash.NewSphinxHash(256)
-
-	// Write passkey data to SphinxHash instance
 	if _, err := sphinx.Write(passkey); err != nil {
 		return nil, fmt.Errorf("error writing passkey data to SphinxHash: %v", err)
 	}
-
-	// Retrieve the computed hash
-	hash := sphinx.Sum(nil) // Sum with nil appends the hash to an empty slice
-
-	// Then hash the SphinxHash result using RIPEMD-160
+	hash := sphinx.Sum(nil)
 	hashRIPEMD160 := ripemd160.New()
 	if _, err := hashRIPEMD160.Write(hash); err != nil {
 		return nil, fmt.Errorf("error hashing with RIPEMD-160: %v", err)
 	}
-
-	// Return the final RIPEMD-160 hash
 	return hashRIPEMD160.Sum(nil), nil
 }
 
-// EncodeBase32 encodes the data in Base32 with padding.
+// EncodeBase32 encodes the data in Base32 without padding.
 func EncodeBase32(data []byte) string {
-	return base32.StdEncoding.EncodeToString(data)
+	return base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(data)
 }
 
-// GeneratePassphraseAndPasskey generates a passphrase and a hashed, Base32-encoded passkey.
 // GenerateKeys generates a passphrase and a hashed, Base32-encoded passkey.
 func GenerateKeys() (passphrase string, base32Passkey string, err error) {
-	// Generate entropy
 	entropy, err := GenerateEntropy()
 	if err != nil {
 		return "", "", fmt.Errorf("failed to generate entropy: %v", err)
 	}
 
-	// Generate passphrase
 	passphrase, err = GeneratePassphrase(entropy)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to generate passphrase: %v", err)
 	}
 
-	// Generate passkey using Argon2 and random salt
 	passkey, err := GeneratePasskey(passphrase)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to generate passkey: %v", err)
 	}
 
-	// Hash the passkey using SphinxHash followed by RIPEMD-160
 	hashedPasskey, err := HashPasskey(passkey)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to hash passkey: %v", err)
 	}
 
-	// Encode the hashed passkey in Base32 and truncate to 16 characters if needed
-	base32Passkey = EncodeBase32(hashedPasskey)
-	if len(base32Passkey) > 16 {
-		base32Passkey = base32Passkey[:16]
-	}
+	// Truncate the hashed passkey (binary) to 10 bytes before encoding
+	truncatedHashedPasskey := hashedPasskey[:10]
+	base32Passkey = EncodeBase32(truncatedHashedPasskey)
 
 	return passphrase, base32Passkey, nil
 }
