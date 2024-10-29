@@ -172,8 +172,8 @@ func GenerateKeys() (passphrase string, base32Passkey string, err error) {
 		// Return an error if passkey generation fails
 		return "", "", fmt.Errorf("failed to generate passkey: %v", err)
 	}
-
-	hashedPasskey, err := HashPasskey(passkey) // Hash the generated passkey
+	// Hash the generated passkey
+	hashedPasskey, err := HashPasskey(passkey)
 	if err != nil {
 		// Return an error if passkey hashing fails
 		return "", "", fmt.Errorf("failed to hash passkey: %v", err)
