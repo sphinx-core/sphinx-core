@@ -142,7 +142,6 @@ func EncodeBase32(data []byte) string {
 }
 
 // GeneratePassphraseAndPasskey generates a passphrase and a hashed, Base32-encoded passkey.
-// GenerateKeys generates a passphrase and a hashed, Base32-encoded passkey.
 func GenerateKeys() (passphrase string, base32Passkey string, err error) {
 	// Generate entropy
 	entropy, err := GenerateEntropy()
@@ -168,11 +167,13 @@ func GenerateKeys() (passphrase string, base32Passkey string, err error) {
 		return "", "", fmt.Errorf("failed to hash passkey: %v", err)
 	}
 
-	// Encode the hashed passkey in Base32 and truncate to 16 characters if needed
-	base32Passkey = EncodeBase32(hashedPasskey)
-	if len(base32Passkey) > 16 {
-		base32Passkey = base32Passkey[:16]
+	// Truncate the binary hash to maintain entropy before Base32 encoding
+	if len(hashedPasskey) > 16 { // Or any target byte length
+		hashedPasskey = hashedPasskey[:16]
 	}
+
+	// Encode the truncated hashed passkey in Base32
+	base32Passkey = EncodeBase32(hashedPasskey)
 
 	return passphrase, base32Passkey, nil
 }
