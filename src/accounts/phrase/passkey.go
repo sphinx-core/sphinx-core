@@ -51,35 +51,44 @@ const (
 
 // GenerateSalt generates a cryptographically secure random salt.
 func GenerateSalt() ([]byte, error) {
-	salt := make([]byte, SaltSize) // Create a byte slice for the salt
-	_, err := rand.Read(salt)      // Fill the slice with random bytes
+	// Create a byte slice for the salt
+	salt := make([]byte, SaltSize)
+	// Fill the slice with random bytes
+	_, err := rand.Read(salt)
 	if err != nil {
 		// Return an error if salt generation fails
 		return nil, fmt.Errorf("error generating salt: %v", err)
 	}
-	return salt, nil // Return the generated salt
+	// Return the generated salt
+	return salt, nil
 }
 
 // GenerateNonce generates a cryptographically secure random nonce.
 func GenerateNonce() ([]byte, error) {
-	nonce := make([]byte, NonceSize) // Create a byte slice for the nonce
-	_, err := rand.Read(nonce)       // Fill the slice with random bytes
+	// Create a byte slice for the nonce
+	nonce := make([]byte, NonceSize)
+	// Fill the slice with random bytes
+	_, err := rand.Read(nonce)
 	if err != nil {
 		// Return an error if nonce generation fails
 		return nil, fmt.Errorf("error generating nonce: %v", err)
 	}
-	return nonce, nil // Return the generated nonce
+	// Return the generated nonce
+	return nonce, nil
 }
 
 // GenerateEntropy generates secure random entropy for private key generation.
 func GenerateEntropy() ([]byte, error) {
-	entropy := make([]byte, EntropySize) // Create a byte slice for entropy
-	_, err := rand.Read(entropy)         // Fill the slice with random bytes
+	// Create a byte slice for entropy
+	entropy := make([]byte, EntropySize)
+	// Fill the slice with random bytes
+	_, err := rand.Read(entropy)
 	if err != nil {
 		// Return an error if entropy generation fails
 		return nil, fmt.Errorf("error generating entropy: %v", err)
 	}
-	return entropy, nil // Return the raw entropy for BIP-39
+	// Return the raw entropy for BIP-39
+	return entropy, nil
 }
 
 // GeneratePassphrase generates a BIP-39 passphrase from entropy.
@@ -90,37 +99,46 @@ func GeneratePassphrase(entropy []byte) (string, error) {
 		// Return an error if passphrase generation fails
 		return "", fmt.Errorf("error generating passphrase: %v", err)
 	}
-	return passphrase, nil // Return the generated passphrase
+	// Return the generated passphrase
+	return passphrase, nil
 }
 
 // GeneratePasskey generates a passkey using Argon2 and a random salt plus nonce.
 func GeneratePasskey(passphrase string) ([]byte, error) {
-	ikm := []byte(passphrase)   // Convert the input key material (passphrase) to a byte slice
-	salt, err := GenerateSalt() // Generate a random salt
+	// Convert the input key material (passphrase) to a byte slice
+	ikm := []byte(passphrase)
+	// Generate a random salt
+	salt, err := GenerateSalt()
 	if err != nil {
 		// Return an error if salt generation fails
 		return nil, fmt.Errorf("error generating salt: %v", err)
 	}
-	nonce, err := GenerateNonce() // Generate a random nonce
+	// Generate a random nonce
+	nonce, err := GenerateNonce()
 	if err != nil {
 		// Return an error if nonce generation fails
 		return nil, fmt.Errorf("error generating nonce: %v", err)
 	}
-	combinedSalt := append(salt, nonce...) // Combine the salt and nonce
+	// Combine the salt and nonce
+	combinedSalt := append(salt, nonce...)
 	// Generate a passkey using Argon2 with the combined salt
 	passkey := argon2.IDKey(ikm, combinedSalt, iterations, memory, parallelism, PasskeySize)
-	return passkey, nil // Return the generated passkey
+	// Return the generated passkey
+	return passkey, nil
 }
 
 // HashPasskey hashes the passkey using SphinxHash and then applies RIPEMD-160.
 func HashPasskey(passkey []byte) ([]byte, error) {
-	sphinx := spxhash.NewSphinxHash(256) // Create a new SphinxHash instance
+	// Create a new SphinxHash instance
+	sphinx := spxhash.NewSphinxHash(256)
 	if _, err := sphinx.Write(passkey); err != nil {
 		// Return an error if writing passkey to SphinxHash fails
 		return nil, fmt.Errorf("error writing passkey data to SphinxHash: %v", err)
 	}
-	hash := sphinx.Sum(nil)          // Finalize the hash computation
-	hashRIPEMD160 := ripemd160.New() // Create a new RIPEMD-160 hash instance
+	// Finalize the hash computation
+	hash := sphinx.Sum(nil)
+	// Create a new RIPEMD-160 hash instance
+	hashRIPEMD160 := ripemd160.New()
 	if _, err := hashRIPEMD160.Write(hash); err != nil {
 		// Return an error if writing to RIPEMD-160 fails
 		return nil, fmt.Errorf("error hashing with RIPEMD-160: %v", err)
@@ -136,19 +154,20 @@ func EncodeBase32(data []byte) string {
 
 // GenerateKeys generates a passphrase and a hashed, Base32-encoded passkey.
 func GenerateKeys() (passphrase string, base32Passkey string, err error) {
-	entropy, err := GenerateEntropy() // Generate entropy for the mnemonic
+	// Generate entropy for the mnemonic
+	entropy, err := GenerateEntropy()
 	if err != nil {
 		// Return an error if entropy generation fails
 		return "", "", fmt.Errorf("failed to generate entropy: %v", err)
 	}
-
-	passphrase, err = GeneratePassphrase(entropy) // Generate passphrase from entropy
+	// Generate passphrase from entropy
+	passphrase, err = GeneratePassphrase(entropy)
 	if err != nil {
 		// Return an error if passphrase generation fails
 		return "", "", fmt.Errorf("failed to generate passphrase: %v", err)
 	}
-
-	passkey, err := GeneratePasskey(passphrase) // Generate passkey from the passphrase
+	// Generate passkey from the passphrase
+	passkey, err := GeneratePasskey(passphrase)
 	if err != nil {
 		// Return an error if passkey generation fails
 		return "", "", fmt.Errorf("failed to generate passkey: %v", err)
@@ -161,8 +180,10 @@ func GenerateKeys() (passphrase string, base32Passkey string, err error) {
 	}
 
 	// Increase the length of the truncated hashed passkey to 16 bytes before encoding
-	truncatedHashedPasskey := hashedPasskey[:16]         // Truncate to the first 16 bytes
-	base32Passkey = EncodeBase32(truncatedHashedPasskey) // Encode the truncated hash in Base32
-
-	return passphrase, base32Passkey, nil // Return the generated passphrase and Base32-encoded passkey
+	// Truncate to the first 16 bytes
+	truncatedHashedPasskey := hashedPasskey[:16]
+	// Encode the truncated hash in Base32
+	base32Passkey = EncodeBase32(truncatedHashedPasskey)
+	// Return the generated passphrase and Base32-encoded passkey
+	return passphrase, base32Passkey, nil
 }
