@@ -157,25 +157,33 @@ func GenerateKeys() (passphrase string, base32Passkey string, err error) {
 	// Generate entropy for the mnemonic
 	entropy, err := GenerateEntropy()
 	if err != nil {
+		// Return an error if entropy generation fails
 		return "", "", fmt.Errorf("failed to generate entropy: %v", err)
 	}
 	// Generate passphrase from entropy
 	passphrase, err = GeneratePassphrase(entropy)
 	if err != nil {
+		// Return an error if passphrase generation fails
 		return "", "", fmt.Errorf("failed to generate passphrase: %v", err)
 	}
 	// Generate passkey from the passphrase
 	passkey, err := GeneratePasskey(passphrase)
 	if err != nil {
+		// Return an error if passkey generation fails
 		return "", "", fmt.Errorf("failed to generate passkey: %v", err)
 	}
 	// Hash the generated passkey
 	hashedPasskey, err := HashPasskey(passkey)
 	if err != nil {
+		// Return an error if passkey hashing fails
 		return "", "", fmt.Errorf("failed to hash passkey: %v", err)
 	}
 
-	// Encode the full RIPEMD-160 hash (20 bytes) in Base32 without truncation
-	base32Passkey = EncodeBase32(hashedPasskey)
+	// Increase the length of the truncated hashed passkey to 16 bytes before encoding
+	// Truncate to the first 16 bytes
+	truncatedHashedPasskey := hashedPasskey[:16]
+	// Encode the truncated hash in Base32
+	base32Passkey = EncodeBase32(truncatedHashedPasskey)
+	// Return the generated passphrase and Base32-encoded passkey
 	return passphrase, base32Passkey, nil
 }
