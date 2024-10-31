@@ -38,5 +38,14 @@ func main() {
 
 	// Print the generated passphrase and Base32-encoded passkey
 	fmt.Printf("Passphrase: %s\n", passphrase)
-	fmt.Printf("Passkey: %s\n", base32Passkey)
+	fmt.Printf("Base32 Passkey: %s\n", base32Passkey)
+
+	// Decode the Base32-encoded passkey
+	decodedPasskey, err := seed.DecodeBase32(base32Passkey)
+	if err != nil {
+		log.Fatalf("Error decoding Base32 passkey: %v", err)
+	}
+
+	// Print the decoded passkey as a hex string
+	fmt.Printf("Decoded Passkey: %x\n", decodedPasskey)
 }

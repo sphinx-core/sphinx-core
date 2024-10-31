@@ -126,6 +126,16 @@ func EncodeBase32(data []byte) string {
 	return encoded
 }
 
+// DecodeBase32 decodes a Base32-encoded string.
+func DecodeBase32(encoded string) ([]byte, error) {
+	// Decode the Base32 string
+	decoded, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(encoded)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding Base32: %v", err)
+	}
+	return decoded, nil
+}
+
 // GenerateKeys generates a passphrase and a hashed, Base32-encoded passkey.
 func GenerateKeys() (passphrase string, base32Passkey string, err error) {
 	entropy, err := GenerateEntropy()
