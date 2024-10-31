@@ -33,6 +33,20 @@ import (
 	"golang.org/x/crypto/ripemd160"
 )
 
+// Example of Login Flow
+// Here's a simplified approach to a login process:
+
+// During Registration:
+// Generate a random salt and nonce.
+// Use the passphrase to generate the passkey.
+// Store the salt, nonce, and Base32-encoded truncated passkey.
+
+// During Login:
+// Retrieve the stored salt and nonce.
+// Use the entered passphrase, stored salt, and nonce to regenerate the passkey.
+// Truncate the regenerated hash (if you decide to keep truncation).
+// Compare the truncated hash to the stored truncated hash.
+
 // Define constants for the sizes used in the seed generation process
 const (
 	// EntropySize determines the length of entropy to be generated
@@ -181,7 +195,7 @@ func GenerateKeys() (passphrase string, base32Passkey string, err error) {
 
 	// Increase the length of the truncated hashed passkey to 16 bytes before encoding
 	// Truncate to the first 16 bytes
-	truncatedHashedPasskey := hashedPasskey[:16]
+	truncatedHashedPasskey := hashedPasskey[:10]
 	// Encode the truncated hash in Base32
 	base32Passkey = EncodeBase32(truncatedHashedPasskey)
 	// Return the generated passphrase and Base32-encoded passkey
