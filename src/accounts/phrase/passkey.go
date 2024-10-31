@@ -24,6 +24,7 @@ package seed
 
 import (
 	"crypto/rand"
+	"encoding/base32"
 	"fmt"
 
 	spxhash "github.com/sphinx-core/sphinx-core/src/core/spxhash/hash"
@@ -145,33 +146,44 @@ func HashPasskey(passkey []byte) ([]byte, error) {
 	return hashRIPEMD160.Sum(nil), nil // Return the final hashed output
 }
 
-// GenerateKeys generates a passphrase and a hashed passkey.
-func GenerateKeys() (passphrase string, hashedPasskey []byte, err error) {
+// EncodeBase32 encodes the data in Base32 without padding.
+func EncodeBase32(data []byte) string {
+	// Encode the data in Base32 format without any padding
+	return base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(data)
+}
+
+// GenerateKeys generates a passphrase and a hashed, Base32-encoded passkey.
+func GenerateKeys() (passphrase string, base32Passkey string, err error) {
 	// Generate entropy for the mnemonic
 	entropy, err := GenerateEntropy()
 	if err != nil {
 		// Return an error if entropy generation fails
-		return "", nil, fmt.Errorf("failed to generate entropy: %v", err)
+		return "", "", fmt.Errorf("failed to generate entropy: %v", err)
 	}
 	// Generate passphrase from entropy
 	passphrase, err = GeneratePassphrase(entropy)
 	if err != nil {
 		// Return an error if passphrase generation fails
-		return "", nil, fmt.Errorf("failed to generate passphrase: %v", err)
+		return "", "", fmt.Errorf("failed to generate passphrase: %v", err)
 	}
 	// Generate passkey from the passphrase
 	passkey, err := GeneratePasskey(passphrase)
 	if err != nil {
 		// Return an error if passkey generation fails
-		return "", nil, fmt.Errorf("failed to generate passkey: %v", err)
+		return "", "", fmt.Errorf("failed to generate passkey: %v", err)
 	}
 	// Hash the generated passkey
-	hashedPasskey, err = HashPasskey(passkey)
+	hashedPasskey, err := HashPasskey(passkey)
 	if err != nil {
 		// Return an error if passkey hashing fails
-		return "", nil, fmt.Errorf("failed to hash passkey: %v", err)
+		return "", "", fmt.Errorf("failed to hash passkey: %v", err)
 	}
 
-	// Return the generated passphrase and the raw hashed passkey
-	return passphrase, hashedPasskey, nil
+	// Increase the length of the truncated hashed passkey to 16 bytes before encoding
+	// Truncate to the first 16 bytes
+	truncatedHashedPasskey := hashedPasskey[:16]
+	// Encode the truncated hash in Base32
+	base32Passkey = EncodeBase32(truncatedHashedPasskey)
+	// Return the generated passphrase and Base32-encoded passkey
+	return passphrase, base32Passkey, nil
 }

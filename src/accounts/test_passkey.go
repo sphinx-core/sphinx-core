@@ -31,7 +31,7 @@ import (
 
 func main() {
 	// Generate passphrase and passkey
-	passphrase, hashedPasskey, err := seed.GenerateKeys()
+	passphrase, base32Passkey, err := seed.GenerateKeys()
 	if err != nil {
 		log.Fatalf("Error generating passphrase and passkey: %v", err)
 	}
