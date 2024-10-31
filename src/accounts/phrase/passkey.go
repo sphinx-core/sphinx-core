@@ -24,7 +24,7 @@ package seed
 
 import (
 	"crypto/rand"
-	"encoding/base64" // Change to Base64
+	"encoding/base32"
 	"fmt"
 
 	spxhash "github.com/sphinx-core/sphinx-core/src/core/spxhash/hash"
@@ -117,14 +117,17 @@ func HashPasskey(passkey []byte) ([]byte, error) {
 	return hashRIPEMD160.Sum(nil), nil // This will be 20 bytes
 }
 
-// EncodeBase64 encodes the data in Base64 without padding.
-func EncodeBase64(data []byte) string {
-	encoded := base64.StdEncoding.EncodeToString(data)
+// EncodeBase32 encodes the data in Base32 without padding and trims to 20 characters.
+func EncodeBase32(data []byte) string {
+	encoded := base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(data)
+	if len(encoded) > 20 {
+		return encoded[:20] // Trim to 20 bytes
+	}
 	return encoded
 }
 
-// GenerateKeys generates a passphrase and a hashed, Base64-encoded passkey.
-func GenerateKeys() (passphrase string, base64Passkey string, err error) {
+// GenerateKeys generates a passphrase and a hashed, Base32-encoded passkey.
+func GenerateKeys() (passphrase string, base32Passkey string, err error) {
 	entropy, err := GenerateEntropy()
 	if err != nil {
 		return "", "", fmt.Errorf("failed to generate entropy: %v", err)
@@ -143,12 +146,8 @@ func GenerateKeys() (passphrase string, base64Passkey string, err error) {
 	}
 
 	// The hashedPasskey should already be 20 bytes, so encode it directly
-	base64Passkey = EncodeBase64(hashedPasskey)
+	base32Passkey = EncodeBase32(hashedPasskey)
 
-	// Debugging output to check the sizes
-	fmt.Printf("Hashed Passkey Size: %d bytes\n", len(hashedPasskey))
-	fmt.Printf("Base64 Passkey Size: %d characters\n", len(base64Passkey))
-
-	// Return the generated passphrase and Base64-encoded passkey
-	return passphrase, base64Passkey, nil
+	// Return the generated passphrase and Base32-encoded passkey
+	return passphrase, base32Passkey, nil
 }
