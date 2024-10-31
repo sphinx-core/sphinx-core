@@ -194,7 +194,7 @@ func GenerateKeys() (passphrase string, base32Passkey string, err error) {
 	}
 
 	// Increase the length of the truncated hashed passkey to 16 bytes before encoding
-	// Truncate to the first 16 bytes
+	// Truncate to the first 10 bytes
 	truncatedHashedPasskey := hashedPasskey[:10]
 	// Encode the truncated hash in Base32
 	base32Passkey = EncodeBase32(truncatedHashedPasskey)
