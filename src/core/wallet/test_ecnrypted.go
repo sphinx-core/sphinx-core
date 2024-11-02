@@ -28,6 +28,7 @@ import (
 	"log"
 	"os"
 
+	seed "github.com/sphinx-core/sphinx-core/src/accounts/phrase"
 	key "github.com/sphinx-core/sphinx-core/src/core/sphincs/key/backend"
 	"github.com/sphinx-core/sphinx-core/src/core/wallet/crypter"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -75,19 +76,23 @@ func main() {
 	fmt.Printf("Public Key (PK): %x\n", pkBytes)
 	fmt.Printf("Size of Serialized PK: %d bytes\n", len(pkBytes))
 
+	// Generate passphrase and Base32-encoded passkey from seed package
+	passphrase, base32Passkey, err := seed.GenerateKeys()
+	if err != nil {
+		log.Fatalf("Failed to generate keys from seed: %v", err)
+	}
+	fmt.Printf("Generated Passphrase: %s\n", passphrase)
+	fmt.Printf("Base32 Passkey: %s\n", base32Passkey)
+
 	// Encrypt the secret key using crypter
 	crypt := &crypter.CCrypter{}
-	keyData, err := crypter.GenerateRandomBytes(crypter.WALLET_CRYPTO_KEY_SIZE)
-	if err != nil {
-		log.Fatalf("Failed to generate key data: %v", err)
-	}
 	salt, err := crypter.GenerateRandomBytes(crypter.WALLET_CRYPTO_IV_SIZE)
 	if err != nil {
 		log.Fatalf("Failed to generate salt: %v", err)
 	}
 
-	// Set key from passphrase
-	if !crypt.SetKeyFromPassphrase(keyData, salt, 1000) {
+	// Set key from passphrase (base32 encoded passkey)
+	if !crypt.SetKeyFromPassphrase([]byte(base32Passkey), salt, 1000) { // Convert to []byte
 		log.Fatalf("Failed to set key from passphrase")
 	}
 
@@ -105,8 +110,17 @@ func main() {
 	}
 	fmt.Println("Encrypted Secret Key saved to keystore/secretkey.dat")
 
-	// Optional: Decrypt the encrypted secret key to verify encryption
-	decryptedSecretKey, err := crypt.Decrypt(encryptedSecretKey)
+	// Optional: Decrypt the encrypted secret key using the passphrase and Base32 passkey
+	// Create a new CCrypter for decryption
+	decryptCrypt := &crypter.CCrypter{}
+
+	// Set key from the same passphrase and salt used for encryption
+	if !decryptCrypt.SetKeyFromPassphrase([]byte(base32Passkey), salt, 1000) {
+		log.Fatalf("Failed to set key from passphrase for decryption")
+	}
+
+	// Decrypt the encrypted secret key
+	decryptedSecretKey, err := decryptCrypt.Decrypt(encryptedSecretKey)
 	if err != nil {
 		log.Fatalf("Failed to decrypt secret key: %v", err)
 	}
