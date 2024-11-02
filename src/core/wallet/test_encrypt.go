@@ -92,18 +92,13 @@ func main() {
 	fmt.Printf("Size of Serialized PK: %d bytes\n", len(pkBytes))
 
 	// Generate passphrase and Base32-encoded passkey from seed package
-	passphrase, base32Passkey, err := seed.GenerateKeys()
+	passphrase, base32Passkey, hashedPasskey, err := seed.GenerateKeys()
 	if err != nil {
 		log.Fatalf("Failed to generate keys from seed: %v", err)
 	}
 	fmt.Printf("Passphrase: %s\n", passphrase)
-	fmt.Printf("Passkey: %s\n", base32Passkey)
-
-	// Hash the Base32-encoded passkey to generate hashedPasskey
-	hashedPasskey, err := seed.HashPasskey([]byte(base32Passkey))
-	if err != nil {
-		log.Fatalf("Failed to hash passkey: %v", err)
-	}
+	fmt.Printf("Passkey (Base32): %s\n", base32Passkey)
+	fmt.Printf("Hashed Passkey (hex): %x\n", hashedPasskey)
 
 	// Encrypt the secret key using crypter and hashedPasskey as encryption key
 	crypt := &crypter.CCrypter{}
@@ -131,7 +126,7 @@ func main() {
 	}
 
 	// Encrypt the hashed passkey
-	encryptedHashedPasskey, err := crypt.Encrypt(hashedPasskey)
+	encryptedHashedPasskey, err := crypt.Encrypt(hashedPasskey) // Use hashedPasskey directly as a byte slice
 	if err != nil {
 		log.Fatalf("Failed to encrypt hashed passkey: %v", err)
 	}
@@ -187,5 +182,4 @@ func main() {
 
 	// After decryption, compare with the original hashed passkey
 	fmt.Printf("Hashed Passkey (after encryption): %x\n", decryptedHashedPasskey)
-
 }

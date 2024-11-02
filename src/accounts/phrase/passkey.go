@@ -175,29 +175,29 @@ func EncodeBase32(data []byte) string {
 }
 
 // GenerateKeys generates a passphrase and a hashed, Base32-encoded passkey.
-func GenerateKeys() (passphrase string, base32Passkey string, err error) {
+func GenerateKeys() (passphrase string, base32Passkey string, hashedPasskey []byte, err error) {
 	// Generate entropy for the mnemonic
 	entropy, err := GenerateEntropy()
 	if err != nil {
-		return "", "", fmt.Errorf("failed to generate entropy: %v", err)
+		return "", "", nil, fmt.Errorf("failed to generate entropy: %v", err)
 	}
 
 	// Generate passphrase from entropy
 	passphrase, err = GeneratePassphrase(entropy)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to generate passphrase: %v", err)
+		return "", "", nil, fmt.Errorf("failed to generate passphrase: %v", err)
 	}
 
 	// Generate passkey from the passphrase
 	passkey, err := GeneratePasskey(passphrase)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to generate passkey: %v", err)
+		return "", "", nil, fmt.Errorf("failed to generate passkey: %v", err)
 	}
 
 	// Hash the generated passkey
-	hashedPasskey, err := HashPasskey(passkey)
+	hashedPasskey, err = HashPasskey(passkey)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to hash passkey: %v", err)
+		return "", "", nil, fmt.Errorf("failed to hash passkey: %v", err)
 	}
 
 	// Print the full hashed passkey in hex before truncation
@@ -212,6 +212,6 @@ func GenerateKeys() (passphrase string, base32Passkey string, err error) {
 	// Encode the truncated hash in Base32
 	base32Passkey = EncodeBase32(truncatedHashedPasskey)
 
-	// Return the generated passphrase and Base32-encoded passkey
-	return passphrase, base32Passkey, nil
+	// Return the generated passphrase, Base32-encoded passkey, and hashed passkey
+	return passphrase, base32Passkey, hashedPasskey, nil
 }
