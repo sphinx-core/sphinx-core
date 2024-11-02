@@ -114,7 +114,7 @@ func main() {
 	// Print the generated passphrase.
 	fmt.Printf("Passphrase: %s\n", passphrase)
 	// Print the Base32-encoded passkey.
-	fmt.Printf("Passkey (Base32): %s\n", base32Passkey)
+	fmt.Printf("Base32Passkey: %s\n", base32Passkey)
 	// Print the hashed passkey in hexadecimal format.
 	fmt.Printf("Hashed Passkey (hex): %x\n", hashedPasskey)
 
