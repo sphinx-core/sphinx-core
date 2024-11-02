@@ -23,20 +23,17 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"os"
 
-	"github.com/kasperdi/SPHINCSPLUS-golang/parameters"
-	sign "github.com/sphinx-core/sphinx-core/src/core/sphincs/key"
+	key "github.com/sphinx-core/sphinx-core/src/core/sphincs/key/backend"
 	"github.com/sphinx-core/sphinx-core/src/core/wallet/crypter"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
 func main() {
-	// Initialize parameters for SHAKE256-robust with N = 24
-	params := parameters.MakeSphincsPlusSHAKE256192fRobust(false)
-
 	// Create the keystore directory
 	err := os.MkdirAll("keystore", os.ModePerm)
 	if err != nil {
@@ -50,14 +47,20 @@ func main() {
 	}
 	defer db.Close()
 
-	// Initialize the SphincsManager with the LevelDB instance
-	manager := sign.NewSphincsManager(db)
+	// Initialize KeyManager for generating keys
+	keyManager, err := key.NewKeyManager()
+	if err != nil {
+		log.Fatal("Failed to initialize KeyManager:", err)
+	}
 
 	// Generate keys
-	sk, pk := manager.GenerateKeys(params)
+	sk, pk, err := keyManager.GenerateKey()
+	if err != nil {
+		log.Fatal("Failed to generate keys:", err)
+	}
 
 	// Serialize the secret key to bytes
-	skBytes, err := manager.SerializeSK(sk)
+	skBytes, err := sk.SerializeSK()
 	if err != nil {
 		log.Fatal("Failed to serialize SK:", err)
 	}
@@ -65,7 +68,7 @@ func main() {
 	fmt.Printf("Size of Serialized SK: %d bytes\n", len(skBytes))
 
 	// Serialize the public key to bytes
-	pkBytes, err := manager.SerializePK(pk)
+	pkBytes, err := pk.SerializePK()
 	if err != nil {
 		log.Fatal("Failed to serialize PK:", err)
 	}
@@ -89,7 +92,7 @@ func main() {
 	}
 
 	// Encrypt the serialized secret key
-	encryptedSecretKey, err := crypt.Encrypt(skBytes) // Use skBytes, not secretKeyBytes
+	encryptedSecretKey, err := crypt.Encrypt(skBytes)
 	if err != nil {
 		log.Fatalf("Failed to encrypt secret key: %v", err)
 	}
@@ -110,12 +113,26 @@ func main() {
 	fmt.Printf("Decrypted Secret Key: %x\n", decryptedSecretKey)
 
 	// Deserialize the decrypted key to verify the integrity
-	deserializedSecretKey, err := manager.DeserializeSK(params, decryptedSecretKey)
+	deserializedSK, deserializedPK, err := keyManager.DeserializeKeyPair(decryptedSecretKey, pkBytes)
 	if err != nil {
 		log.Fatalf("Failed to deserialize secret key: %v", err)
 	}
-	fmt.Println("Deserialized Secret Key matches original!")
-	fmt.Printf("Deserialized Secret Key: %x\n", deserializedSecretKey)
+
+	// Verify that the deserialized secret key matches the original
+	deserializedSKBytes, err := deserializedSK.SerializeSK()
+	if err != nil {
+		log.Fatalf("Failed to serialize deserialized SK: %v", err)
+	}
+	deserializedPKBytes, err := deserializedPK.SerializePK()
+	if err != nil {
+		log.Fatalf("Failed to serialize deserialized PK: %v", err)
+	}
+
+	if bytes.Equal(deserializedSKBytes, skBytes) && bytes.Equal(deserializedPKBytes, pkBytes) {
+		fmt.Println("Deserialized keys match the original keys!")
+	} else {
+		fmt.Println("Deserialized keys do NOT match the original keys.")
+	}
 }
 
 // saveToFile saves the given data to a file with the provided file path
@@ -129,9 +146,5 @@ func saveToFile(filePath string, data []byte) error {
 
 	// Write data to the file
 	_, err = file.Write(data)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
