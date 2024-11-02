@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/sphinx-core/sphinx-core/src/core/sphincs/key"
+	key "github.com/sphinx-core/sphinx-core/src/core/sphincs/key/backend"
 )
 
 func main() {
