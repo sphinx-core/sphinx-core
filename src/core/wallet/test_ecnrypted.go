@@ -81,8 +81,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to generate keys from seed: %v", err)
 	}
-	fmt.Printf("Generated Passphrase: %s\n", passphrase)
-	fmt.Printf("Base32 Passkey: %s\n", base32Passkey)
+	fmt.Printf("Passphrase: %s\n", passphrase)
+	fmt.Printf("Passkey: %s\n", base32Passkey)
 
 	// Encrypt the secret key using crypter
 	crypt := &crypter.CCrypter{}
