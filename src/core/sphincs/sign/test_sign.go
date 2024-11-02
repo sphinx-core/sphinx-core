@@ -29,7 +29,8 @@ import (
 
 	"github.com/kasperdi/SPHINCSPLUS-golang/parameters"
 	"github.com/sphinx-core/sphinx-core/src/core/hashtree"
-	sign "github.com/sphinx-core/sphinx-core/src/core/sphincs/key"
+	sign "github.com/sphinx-core/sphinx-core/src/core/sphincs/sign/backend"
+
 	"github.com/syndtr/goleveldb/leveldb"
 )
 

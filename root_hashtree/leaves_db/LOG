@@ -1,0 +1,8 @@
+=============== Nov 2, 2024 (WIB) ===============
+08:49:42.602144 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+08:49:42.632777 db@open opening
+08:49:42.633511 version@stat F·[] S·0B[] Sc·[]
+08:49:42.647464 db@janitor F·2 G·0
+08:49:42.647567 db@open done T·14.73037ms
+08:49:43.068523 db@close closing
+08:49:43.068852 db@close done T·325.572µs
