@@ -142,21 +142,30 @@ func GeneratePasskey(passphrase string) ([]byte, error) {
 }
 
 // HashPasskey hashes the passkey using SphinxHash and then applies RIPEMD-160.
+// HashPasskey hashes the passkey using double SphinxHash and then applies RIPEMD-160.
 func HashPasskey(passkey []byte) ([]byte, error) {
-	// Create a new SphinxHash instance
-	sphinx := spxhash.NewSphinxHash(256)
-	if _, err := sphinx.Write(passkey); err != nil {
-		// Return an error if writing passkey to SphinxHash fails
-		return nil, fmt.Errorf("error writing passkey data to SphinxHash: %v", err)
+	// First SphinxHash instance
+	sphinx1 := spxhash.NewSphinxHash(256)
+	if _, err := sphinx1.Write(passkey); err != nil {
+		return nil, fmt.Errorf("error writing passkey data to first SphinxHash: %v", err)
 	}
-	// Finalize the hash computation
-	hash := sphinx.Sum(nil)
-	// Create a new RIPEMD-160 hash instance
+	// Finalize the first hash computation
+	firstHash := sphinx1.Sum(nil)
+
+	// Second SphinxHash instance for double hashing
+	sphinx2 := spxhash.NewSphinxHash(256)
+	if _, err := sphinx2.Write(firstHash); err != nil {
+		return nil, fmt.Errorf("error writing first hash to second SphinxHash: %v", err)
+	}
+	// Finalize the second hash computation
+	doubleHash := sphinx2.Sum(nil)
+
+	// Apply RIPEMD-160 to the double-hashed output
 	hashRIPEMD160 := ripemd160.New()
-	if _, err := hashRIPEMD160.Write(hash); err != nil {
-		// Return an error if writing to RIPEMD-160 fails
+	if _, err := hashRIPEMD160.Write(doubleHash); err != nil {
 		return nil, fmt.Errorf("error hashing with RIPEMD-160: %v", err)
 	}
+
 	return hashRIPEMD160.Sum(nil), nil // Return the final hashed output
 }
 
