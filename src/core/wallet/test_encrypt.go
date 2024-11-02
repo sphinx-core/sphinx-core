@@ -34,6 +34,21 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
+// saveToFile saves data to the specified file path
+func saveToFile(filepath string, data []byte) error {
+	file, err := os.Create(filepath)
+	if err != nil {
+		return fmt.Errorf("failed to create file %s: %v", filepath, err)
+	}
+	defer file.Close()
+
+	_, err = file.Write(data)
+	if err != nil {
+		return fmt.Errorf("failed to write data to file %s: %v", filepath, err)
+	}
+	return nil
+}
+
 func main() {
 	// Create the keystore directory
 	err := os.MkdirAll("keystore", os.ModePerm)
@@ -171,21 +186,6 @@ func main() {
 	fmt.Printf("Hashed Passkey (before encryption): %x\n", hashedPasskey)
 
 	// After decryption, compare with the original hashed passkey
-	fmt.Printf("Decrypted Hashed Passkey: %x\n", decryptedHashedPasskey)
+	fmt.Printf("Hashed Passkey (after encryption): %x\n", decryptedHashedPasskey)
 
-}
-
-// saveToFile saves data to the specified file path
-func saveToFile(filepath string, data []byte) error {
-	file, err := os.Create(filepath)
-	if err != nil {
-		return fmt.Errorf("failed to create file %s: %v", filepath, err)
-	}
-	defer file.Close()
-
-	_, err = file.Write(data)
-	if err != nil {
-		return fmt.Errorf("failed to write data to file %s: %v", filepath, err)
-	}
-	return nil
 }
