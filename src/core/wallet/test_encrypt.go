@@ -217,9 +217,7 @@ func main() {
 		// Log fatal error if decryption fails.
 		log.Fatalf("Failed to decrypt hashed passkey: %v", err)
 	}
-	// Print the hashed passkey before encryption for reference.
-	fmt.Printf("Hashed Passkey (encrypted): %x\n", hashedPasskey)
 
 	// After decryption, compare the decrypted hashed passkey with the original.
-	fmt.Printf("Decrypted Hashed Passkey: %s\n", decryptedHashedPasskey)
+	fmt.Printf("Decrypted Hashed Passkey: %x\n", decryptedHashedPasskey) // Print in hex format
 }
