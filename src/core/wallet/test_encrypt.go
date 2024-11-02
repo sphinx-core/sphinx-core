@@ -76,7 +76,7 @@ func main() {
 		log.Fatal("Failed to initialize KeyManager:", err)
 	}
 
-	// Generate a secret key (SK) and public key (PK).
+	// Generate a SPHINCS+ secret key (SK) and public key (PK).
 	sk, pk, err := keyManager.GenerateKey()
 	if err != nil {
 		// Log fatal error if key generation fails.
