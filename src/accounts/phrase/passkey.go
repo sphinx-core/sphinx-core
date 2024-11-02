@@ -200,14 +200,8 @@ func GenerateKeys() (passphrase string, base32Passkey string, hashedPasskey []by
 		return "", "", nil, fmt.Errorf("failed to hash passkey: %v", err)
 	}
 
-	// Print the full hashed passkey in hex before truncation
-	fmt.Printf("Hashed Passkey (full, hex): %x\n", hashedPasskey)
-
 	// Truncate to the first 10 bytes
 	truncatedHashedPasskey := hashedPasskey[:10]
-
-	// Print the truncated hashed passkey in hex
-	fmt.Printf("Hashed Passkey (truncated, hex): %x\n", truncatedHashedPasskey)
 
 	// Encode the truncated hash in Base32
 	base32Passkey = EncodeBase32(truncatedHashedPasskey)

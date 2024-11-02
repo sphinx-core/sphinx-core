@@ -30,13 +30,14 @@ import (
 )
 
 func main() {
-	// Generate passphrase and passkey
-	passphrase, base32Passkey, err := seed.GenerateKeys()
+	// Generate passphrase and passkey, including hashed passkey
+	passphrase, base32Passkey, hashedPasskey, err := seed.GenerateKeys()
 	if err != nil {
 		log.Fatalf("Error generating passphrase and passkey: %v", err)
 	}
 
-	// Print the generated passphrase and Base32-encoded passkey
+	// Print the generated passphrase, Base32-encoded passkey, and hashed passkey
 	fmt.Printf("Passphrase: %s\n", passphrase)
-	fmt.Printf("Passkey: %s\n", base32Passkey)
+	fmt.Printf("Base32Passkey: %s\n", base32Passkey)
+	fmt.Printf("Hashed Passkey: %x\n", hashedPasskey)
 }
