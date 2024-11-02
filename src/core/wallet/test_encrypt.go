@@ -84,16 +84,22 @@ func main() {
 	fmt.Printf("Passphrase: %s\n", passphrase)
 	fmt.Printf("Passkey: %s\n", base32Passkey)
 
-	// Encrypt the secret key using crypter
+	// Hash the Base32-encoded passkey to generate hashedPasskey
+	hashedPasskey, err := seed.HashPasskey([]byte(base32Passkey))
+	if err != nil {
+		log.Fatalf("Failed to hash passkey: %v", err)
+	}
+
+	// Encrypt the secret key using crypter and hashedPasskey as encryption key
 	crypt := &crypter.CCrypter{}
 	salt, err := crypter.GenerateRandomBytes(crypter.WALLET_CRYPTO_IV_SIZE)
 	if err != nil {
 		log.Fatalf("Failed to generate salt: %v", err)
 	}
 
-	// Set key from passphrase (base32 encoded passkey)
-	if !crypt.SetKeyFromPassphrase([]byte(base32Passkey), salt, 1000) { // Convert to []byte
-		log.Fatalf("Failed to set key from passphrase")
+	// Set key from hashedPasskey for encryption
+	if !crypt.SetKeyFromPassphrase(hashedPasskey, salt, 1000) {
+		log.Fatalf("Failed to set key from hashed passkey")
 	}
 
 	// Encrypt the serialized secret key
@@ -108,15 +114,24 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to save secret key to file: %v", err)
 	}
-	fmt.Println("Encrypted Secret Key saved to keystore/secretkey.dat")
 
-	// Optional: Decrypt the encrypted secret key using the passphrase and Base32 passkey
-	// Create a new CCrypter for decryption
+	// Encrypt the hashed passkey
+	encryptedHashedPasskey, err := crypt.Encrypt(hashedPasskey)
+	if err != nil {
+		log.Fatalf("Failed to encrypt hashed passkey: %v", err)
+	}
+	fmt.Printf("Encrypted Hashed Passkey: %x\n", encryptedHashedPasskey)
+
+	// Save the encrypted hashed passkey to a .dat file
+	err = saveToFile("keystore/hashedpasskey.dat", encryptedHashedPasskey)
+	if err != nil {
+		log.Fatalf("Failed to save hashed passkey to file: %v", err)
+	}
+
+	// Optional: Decrypt the encrypted secret key using hashed passkey
 	decryptCrypt := &crypter.CCrypter{}
-
-	// Set key from the same passphrase and salt used for encryption
-	if !decryptCrypt.SetKeyFromPassphrase([]byte(base32Passkey), salt, 1000) {
-		log.Fatalf("Failed to set key from passphrase for decryption")
+	if !decryptCrypt.SetKeyFromPassphrase(hashedPasskey, salt, 1000) {
+		log.Fatalf("Failed to set key from hashed passkey for decryption")
 	}
 
 	// Decrypt the encrypted secret key
@@ -126,13 +141,12 @@ func main() {
 	}
 	fmt.Printf("Decrypted Secret Key: %x\n", decryptedSecretKey)
 
-	// Deserialize the decrypted key to verify the integrity
+	// Verify that the deserialized secret key matches the original
 	deserializedSK, deserializedPK, err := keyManager.DeserializeKeyPair(decryptedSecretKey, pkBytes)
 	if err != nil {
 		log.Fatalf("Failed to deserialize secret key: %v", err)
 	}
 
-	// Verify that the deserialized secret key matches the original
 	deserializedSKBytes, err := deserializedSK.SerializeSK()
 	if err != nil {
 		log.Fatalf("Failed to serialize deserialized SK: %v", err)
@@ -145,20 +159,33 @@ func main() {
 	if bytes.Equal(deserializedSKBytes, skBytes) && bytes.Equal(deserializedPKBytes, pkBytes) {
 		fmt.Println("Deserialized keys match the original keys!")
 	} else {
-		fmt.Println("Deserialized keys do NOT match the original keys.")
+		fmt.Println("Deserialized keys do not match the original keys.")
 	}
+
+	// Optional: Decrypt the encrypted hashed passkey
+	decryptedHashedPasskey, err := decryptCrypt.Decrypt(encryptedHashedPasskey)
+	if err != nil {
+		log.Fatalf("Failed to decrypt hashed passkey: %v", err)
+	}
+	// Print the hashed passkey before encryption
+	fmt.Printf("Hashed Passkey (before encryption): %x\n", hashedPasskey)
+
+	// After decryption, compare with the original hashed passkey
+	fmt.Printf("Decrypted Hashed Passkey: %x\n", decryptedHashedPasskey)
+
 }
 
-// saveToFile saves the given data to a file with the provided file path
-func saveToFile(filePath string, data []byte) error {
-	// Create and open the file
-	file, err := os.Create(filePath)
+// saveToFile saves data to the specified file path
+func saveToFile(filepath string, data []byte) error {
+	file, err := os.Create(filepath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create file %s: %v", filepath, err)
 	}
 	defer file.Close()
 
-	// Write data to the file
 	_, err = file.Write(data)
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to write data to file %s: %v", filepath, err)
+	}
+	return nil
 }
