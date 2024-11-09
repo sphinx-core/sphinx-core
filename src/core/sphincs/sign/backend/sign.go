@@ -33,28 +33,13 @@ import (
 
 // SIPS-0002 https://github.com/sphinx-core/sips/wiki/SIPS-0002
 
-// KeyManager interface defines methods for key management and cryptographic operations
+// KeyManager interface defines methods for sign and verify management and cryptographic operations
 type KeyManager interface {
-	// GenerateKeys generates a new pair of secret and public keys based on the provided parameters
-	GenerateKeys(params *parameters.Parameters) (*sphincs.SPHINCS_SK, *sphincs.SPHINCS_PK)
-
 	// SignMessage signs a given message using the secret key, returns the signature and the Merkle tree root node
 	SignMessage(params *parameters.Parameters, message []byte, sk *sphincs.SPHINCS_SK) (*sphincs.SPHINCS_SIG, *hashtree.HashTreeNode, error)
 
 	// VerifySignature checks if a signature is valid for a given message and public key, using the Merkle tree root node
 	VerifySignature(params *parameters.Parameters, message []byte, sig *sphincs.SPHINCS_SIG, pk *sphincs.SPHINCS_PK, merkleRoot *hashtree.HashTreeNode) bool
-
-	// SerializeSK converts a secret key to a byte slice
-	SerializeSK(sk *sphincs.SPHINCS_SK) ([]byte, error)
-
-	// DeserializeSK converts a byte slice back into a secret key
-	DeserializeSK(params *parameters.Parameters, skBytes []byte) (*sphincs.SPHINCS_SK, error)
-
-	// SerializePK converts a public key to a byte slice
-	SerializePK(pk *sphincs.SPHINCS_PK) ([]byte, error)
-
-	// DeserializePK converts a byte slice back into a public key
-	DeserializePK(params *parameters.Parameters, pkBytes []byte) (*sphincs.SPHINCS_PK, error)
 
 	// SerializeSignature converts a signature to a byte slice
 	SerializeSignature(sig *sphincs.SPHINCS_SIG) ([]byte, error)
@@ -71,11 +56,6 @@ type SphincsManager struct {
 // NewSphincsManager creates a new instance of SphincsManager with a LevelDB instance
 func NewSphincsManager(db *leveldb.DB) *SphincsManager {
 	return &SphincsManager{db: db}
-}
-
-// GenerateKeys generates a new pair of secret and public keys
-func (sm *SphincsManager) GenerateKeys(params *parameters.Parameters) (*sphincs.SPHINCS_SK, *sphincs.SPHINCS_PK) {
-	return sphincs.Spx_keygen(params)
 }
 
 // SignMessage signs a given message using the secret key
@@ -142,66 +122,76 @@ func (sm *SphincsManager) SignMessage(params *parameters.Parameters, message []b
 }
 
 // VerifySignature verifies if a signature is valid for a given message and public key
+// Parameters:
+// - params: SPHINCS+ parameters used for the signature verification process.
+// - message: The original message that was signed.
+// - sig: The signature that needs to be verified.
+// - pk: The public key used to verify the signature.
+// - merkleRoot: The Merkle tree root used for verifying the integrity of the signature.
 func (sm *SphincsManager) VerifySignature(params *parameters.Parameters, message []byte, sig *sphincs.SPHINCS_SIG, pk *sphincs.SPHINCS_PK, merkleRoot *hashtree.HashTreeNode) bool {
-	// Signature Verification
+	// Step 1: Perform SPHINCS+ signature verification using the provided message, signature, and public key
+	// The Spx_verify function is a cryptographic verification function from SPHINCS+ that checks the validity of the signature.
+	// This step uses the SPHINCS+ signature algorithm to confirm if the signature corresponds correctly to the message and public key.
 	isValid := sphincs.Spx_verify(params, message, sig, pk)
 	if !isValid {
+		// If the verification fails (signature doesn't match), return false.
 		return false
 	}
 
-	// Serialize the signature into a byte slice for processing
+	// Step 2: Serialize the signature into a byte slice for further processing
+	// The signature is serialized into a byte slice so that it can be manipulated in smaller chunks for Merkle tree reconstruction.
+	// If the serialization fails (due to incorrect data format, invalid signature, etc.), return false.
 	sigBytes, err := sig.SerializeSignature()
 	if err != nil {
+		// If serialization fails, return false as we cannot proceed with the invalid signature.
 		return false
 	}
 
-	// Split the serialized signature into parts to rebuild the Merkle tree
-	chunkSize := len(sigBytes) / 4
-	sigParts := make([][]byte, 4)
+	// Step 3: Split the serialized signature into chunks for Merkle tree reconstruction
+	// This step divides the serialized signature (`sigBytes`) into 4 equal parts. However, the total size of the signature might be very large (35,664 bytes in this case).
+	// The division into 4 parts is simply to handle it in manageable chunks.
+	// The method assumes the signature is chunked evenly, but if the signature size is not a perfect multiple of 4,
+	// the last chunk will be smaller and contain the remaining bytes.
+	chunkSize := len(sigBytes) / 4 // Determine the chunk size based on the total size of the signature.
+	sigParts := make([][]byte, 4)  // Create a slice to store the 4 parts of the signature.
+
+	// Loop to split the signature into 4 chunks.
 	for i := 0; i < 4; i++ {
+		// Calculate the start and end index for each chunk
 		start := i * chunkSize
 		end := start + chunkSize
+
+		// For the last chunk, include any remaining bytes that were not equally divided
 		if i == 3 {
-			end = len(sigBytes)
+			end = len(sigBytes) // Ensure the last chunk gets all remaining bytes.
 		}
+
+		// Store each chunk into the `sigParts` slice for further use.
 		sigParts[i] = sigBytes[start:end]
 	}
 
-	// Rebuild the Merkle tree and obtain the root
+	// Step 4: Rebuild the Merkle tree from the signature parts
+	// After splitting the signature into parts, we rebuild the Merkle tree to check if the root hash matches the provided Merkle root.
+	// If rebuilding the Merkle tree fails (due to corrupted data or failure in the tree construction), return false.
 	rebuiltRoot, err := buildMerkleTreeFromSignature(sigParts)
 	if err != nil {
+		// Return false if the Merkle tree could not be reconstructed properly from the signature chunks.
 		return false
 	}
 
-	// Convert uint256.Int to []byte using the Bytes method
+	// Step 5: Convert the rebuilt Merkle tree root hash to a byte slice
+	// The Merkle tree's root hash is extracted and converted to bytes for comparison purposes.
 	rebuiltRootHashBytes := rebuiltRoot.Hash.Bytes()
+
+	// Step 6: Compare the rebuilt Merkle root hash with the provided Merkle root hash
+	// Convert both hashes (rebuilt and provided) to hex strings and compare them. If they match, the signature is valid.
 	merkleRootHashBytes := merkleRoot.Hash.Bytes()
 
-	// Compare the hashes by encoding them to hex strings
+	// Return true if the rebuilt Merkle root hash matches the provided Merkle root hash. This confirms the signature is valid.
 	return hex.EncodeToString(rebuiltRootHashBytes) == hex.EncodeToString(merkleRootHashBytes)
 }
 
-// Helper functions for key serialization and deserialization
-// SerializeSK serializes the secret key (sk) into a byte slice
-func (sm *SphincsManager) SerializeSK(sk *sphincs.SPHINCS_SK) ([]byte, error) {
-	return sk.SerializeSK() // Calls the secret key's built-in SerializeSK method
-}
-
-// DeserializeSK deserializes a byte slice into a secret key (sk) using the provided parameters
-func (sm *SphincsManager) DeserializeSK(params *parameters.Parameters, skBytes []byte) (*sphincs.SPHINCS_SK, error) {
-	return sphincs.DeserializeSK(params, skBytes) // Calls SPHINCS method to deserialize secret key from bytes
-}
-
-// SerializePK serializes the public key (pk) into a byte slice
-func (sm *SphincsManager) SerializePK(pk *sphincs.SPHINCS_PK) ([]byte, error) {
-	return pk.SerializePK() // Calls the public key's built-in SerializePK method
-}
-
-// DeserializePK deserializes a byte slice into a public key (pk) using the provided parameters
-func (sm *SphincsManager) DeserializePK(params *parameters.Parameters, pkBytes []byte) (*sphincs.SPHINCS_PK, error) {
-	return sphincs.DeserializePK(params, pkBytes) // Calls SPHINCS method to deserialize public key from bytes
-}
-
+// Helper functions for serialization and deserialization
 // SerializeSignature serializes the signature (sig) into a byte slice
 func (sm *SphincsManager) SerializeSignature(sig *sphincs.SPHINCS_SIG) ([]byte, error) {
 	return sig.SerializeSignature() // Calls the signature's built-in SerializeSignature method
