@@ -39,10 +39,12 @@ import (
 var maxFileSize = 1 << 30 // 1 GiB max file size for memory mapping
 
 // HashTreeNode represents a node in the hash tree
+// HashTreeNode represents a node in the hash tree
 type HashTreeNode struct {
-	Hash  *uint256.Int  `json:"hash"`            // 256-bit Hash of the node's data
-	Left  *HashTreeNode `json:"left,omitempty"`  // Left child node
-	Right *HashTreeNode `json:"right,omitempty"` // Right child node
+	Hash   *uint256.Int  `json:"hash"`             // 256-bit Hash of the node's data
+	Left   *HashTreeNode `json:"left,omitempty"`   // Left child node
+	Right  *HashTreeNode `json:"right,omitempty"`  // Right child node
+	Parent *HashTreeNode `json:"parent,omitempty"` // Parent node
 }
 
 // NewHashTree creates a new HashTree instance with the given leaves.
@@ -76,6 +78,20 @@ func computeUint256(data []byte) *uint256.Int {
 	return uint256.NewInt(0).SetBytes(hash)
 }
 
+// GetSiblingNode returns the sibling of the current node if it exists.
+func (node *HashTreeNode) GetSiblingNode(leafIndex int) (*HashTreeNode, error) {
+	// If the current node is a leaf, we can check its sibling based on its position
+	// This assumes that the leaf nodes are at the bottom level of the tree.
+	if node.Left != nil && node.Right != nil {
+		if leafIndex%2 == 0 {
+			return node.Right, nil // Return right child if the current index is even (left child)
+		} else {
+			return node.Left, nil // Return left child if the current index is odd (right child)
+		}
+	}
+	return nil, fmt.Errorf("no sibling found for the given node")
+}
+
 // BuildHashTree builds a Merkle hash tree from leaf nodes.
 // It returns the root node of the hash tree, which is computed by repeatedly
 // combining and hashing pairs of leaf nodes and intermediate nodes.
@@ -97,8 +113,12 @@ func BuildHashTree(leaves [][]byte) *HashTreeNode {
 				left, right := nodes[i], nodes[i+1]
 				// Concatenate the two hashes and compute the hash of the result to create the parent node.
 				hash := computeUint256(append(left.Hash.Bytes(), right.Hash.Bytes()...))
+				// Create the parent node and set the parent pointers for the children
+				parent := &HashTreeNode{Hash: hash, Left: left, Right: right}
+				left.Parent = parent
+				right.Parent = parent
 				// Append the new parent node to the next level, storing references to its children.
-				nextLevel = append(nextLevel, &HashTreeNode{Hash: hash, Left: left, Right: right})
+				nextLevel = append(nextLevel, parent)
 			} else {
 				// If there is an odd number of nodes, do not duplicate the last node, carry it over as is.
 				// We could either keep it unchanged or mark it as invalid if desired.

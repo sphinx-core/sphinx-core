@@ -92,7 +92,11 @@ func main() {
 		PKroot: deserializedSK.PKroot,
 	}
 
+	// Sign a message with the deserialized keys
 	sig, merkleRoot, err := manager.SignMessage(km.Params, message, spxSK)
+	if err != nil {
+		log.Fatal("Failed to sign message:", err)
+	}
 
 	// Serialize the signature to bytes
 	sigBytes, err := manager.SerializeSignature(sig)
