@@ -129,7 +129,7 @@ func (km *KeyManager) SerializeKeyPair(sk *SPHINCS_SK, pk *sphincs.SPHINCS_PK) (
 // - SPHINCS_SK: Deserialized private key structure.
 // - sphincs.SPHINCS_PK: Deserialized public key structure.
 // - An error if deserialization fails or if parameters are missing.
-func (km *KeyManager) DeserializeKeyPair(skBytes, pkBytes []byte) (*SPHINCS_SK, *sphincs.SPHINCS_PK, error) {
+func (km *KeyManager) DeserializeKeyPair(skBytes, pkBytes []byte) (*sphincs.SPHINCS_SK, *sphincs.SPHINCS_PK, error) {
 	if km.Params == nil {
 		return nil, nil, errors.New("missing parameters in KeyManager")
 	}
@@ -146,11 +146,5 @@ func (km *KeyManager) DeserializeKeyPair(skBytes, pkBytes []byte) (*SPHINCS_SK, 
 		return nil, nil, errors.New("failed to deserialize public key: " + err.Error())
 	}
 
-	// Wrap and return the deserialized private and public keys.
-	return &SPHINCS_SK{
-		SKseed: sk.SKseed,
-		SKprf:  sk.SKprf,
-		PKseed: sk.PKseed,
-		PKroot: sk.PKroot,
-	}, pk, nil
+	return sk, pk, nil
 }

@@ -106,6 +106,17 @@ func (sm *SphincsManager) SignMessage(params *parameters.Parameters, message []b
 		sigParts[i] = sigBytes[start:end]
 	}
 
+	// Efficient Verification:
+	// During verification, the signature is reassembled into parts.
+	// A Merkle tree is reconstructed, and the root hash is compared with the original
+	// Merkle root stored from signing. This ensures the integrity of the signature
+	// without loading the entire 35,664 bytes at once.
+	//
+	// Merkle Root Verification: After the signature verification, the serialized signature
+	// is split into four parts, and these parts are used to rebuild a Merkle tree.
+	// The hash of the rebuilt Merkle root is then compared with the hash of the provided merkleRoot.
+	// If both hashes match, the function returns true, confirming that the signature corresponds
+	// to the expected Merkle root.
 	// Build a Merkle tree from the signature parts and retrieve the root node
 	merkleRoot, err := buildMerkleTreeFromSignature(sigParts)
 	if err != nil {
@@ -132,57 +143,42 @@ func (sm *SphincsManager) SignMessage(params *parameters.Parameters, message []b
 
 // VerifySignature verifies if a signature is valid for a given message and public key
 func (sm *SphincsManager) VerifySignature(params *parameters.Parameters, message []byte, sig *sphincs.SPHINCS_SIG, pk *sphincs.SPHINCS_PK, merkleRoot *hashtree.HashTreeNode) bool {
-	// Signature Verification: The signature is first verified using the sphincs.Spx_verify function,
-	// which checks if the signature is valid for the provided message, public key, and parameters.
-	// This part ensures that the original SPHINCS+ signature is valid.
+	// Signature Verification
 	isValid := sphincs.Spx_verify(params, message, sig, pk)
 	if !isValid {
-		// If the signature is not valid, return false
 		return false
 	}
 
-	// Serialize the signature to get its byte representation for further processing
+	// Serialize the signature into a byte slice for processing
 	sigBytes, err := sig.SerializeSignature()
 	if err != nil {
-		// If an error occurs during serialization, return false
 		return false
 	}
 
-	// Split the serialized signature into 4 parts to rebuild the Merkle tree
-	chunkSize := len(sigBytes) / 4 // Calculate the size of each chunk
-	sigParts := make([][]byte, 4)  // Initialize a slice to hold 4 parts of the signature
+	// Split the serialized signature into parts to rebuild the Merkle tree
+	chunkSize := len(sigBytes) / 4
+	sigParts := make([][]byte, 4)
 	for i := 0; i < 4; i++ {
-		// Calculate the start and end index for each chunk
 		start := i * chunkSize
 		end := start + chunkSize
-		// For the last chunk, ensure it includes any remaining bytes
 		if i == 3 {
 			end = len(sigBytes)
 		}
-		// Assign each part of the signature to sigParts
 		sigParts[i] = sigBytes[start:end]
 	}
 
-	// Efficient Verification:
-	// During verification, the signature is reassembled into parts.
-	// A Merkle tree is reconstructed, and the root hash is compared with the original
-	// Merkle root stored from signing. This ensures the integrity of the signature
-	// without loading the entire 35,664 bytes at once.
-	//
-	// Merkle Root Verification: After the signature verification, the serialized signature
-	// is split into four parts, and these parts are used to rebuild a Merkle tree.
-	// The hash of the rebuilt Merkle root is then compared with the hash of the provided merkleRoot.
-	// If both hashes match, the function returns true, confirming that the signature corresponds
-	// to the expected Merkle root.
+	// Rebuild the Merkle tree and obtain the root
 	rebuiltRoot, err := buildMerkleTreeFromSignature(sigParts)
 	if err != nil {
-		// If there is an error while rebuilding the Merkle tree, return false
 		return false
 	}
 
-	// Compare the hash of the rebuilt Merkle root with the provided Merkle root's hash
-	// Convert both to hexadecimal strings and check if they match
-	return hex.EncodeToString(rebuiltRoot.Hash) == hex.EncodeToString(merkleRoot.Hash)
+	// Convert uint256.Int to []byte using the Bytes method
+	rebuiltRootHashBytes := rebuiltRoot.Hash.Bytes()
+	merkleRootHashBytes := merkleRoot.Hash.Bytes()
+
+	// Compare the hashes by encoding them to hex strings
+	return hex.EncodeToString(rebuiltRootHashBytes) == hex.EncodeToString(merkleRootHashBytes)
 }
 
 // Helper functions for key serialization and deserialization

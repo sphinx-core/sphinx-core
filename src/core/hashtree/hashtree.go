@@ -29,6 +29,7 @@ import (
 	"os"
 	"syscall"
 
+	"github.com/holiman/uint256"
 	"github.com/syndtr/goleveldb/leveldb"
 	"golang.org/x/crypto/sha3"
 )
@@ -39,7 +40,7 @@ var maxFileSize = 1 << 30 // 1 GiB max file size for memory mapping
 
 // HashTreeNode represents a node in the hash tree
 type HashTreeNode struct {
-	Hash  []byte        `json:"hash"`            // Hash of the node's data
+	Hash  *uint256.Int  `json:"hash"`            // 256-bit Hash of the node's data
 	Left  *HashTreeNode `json:"left,omitempty"`  // Left child node
 	Right *HashTreeNode `json:"right,omitempty"` // Right child node
 }
@@ -64,13 +65,15 @@ func (tree *HashTree) Build() error {
 	return nil
 }
 
-// Compute the hash of a given data slice using SHAKE-256
-func computeHash(data []byte) []byte {
+// Compute the hash of a given data slice using SHAKE-256 and return a uint256 value.
+func computeUint256(data []byte) *uint256.Int {
 	hasher := sha3.NewShake256() // Create a new SHAKE-256 hasher
 	hasher.Write(data)           // Write the data to the hasher
 	hash := make([]byte, 32)     // Create a byte slice to hold the hash (256 bits)
 	hasher.Read(hash)            // Read the hash into the byte slice
-	return hash
+
+	// Convert the byte slice to a uint256
+	return uint256.NewInt(0).SetBytes(hash)
 }
 
 // BuildHashTree builds a Merkle hash tree from leaf nodes.
@@ -80,7 +83,7 @@ func BuildHashTree(leaves [][]byte) *HashTreeNode {
 	// Create an array of hash tree nodes, where each leaf node is hashed.
 	nodes := make([]*HashTreeNode, len(leaves))
 	for i, leaf := range leaves {
-		nodes[i] = &HashTreeNode{Hash: computeHash(leaf)}
+		nodes[i] = &HashTreeNode{Hash: computeUint256(leaf)}
 	}
 
 	// Continue building the tree until there is only one node left, the root.
@@ -93,7 +96,7 @@ func BuildHashTree(leaves [][]byte) *HashTreeNode {
 				// Combine the hashes of two sibling nodes (left and right).
 				left, right := nodes[i], nodes[i+1]
 				// Concatenate the two hashes and compute the hash of the result to create the parent node.
-				hash := computeHash(append(left.Hash, right.Hash...))
+				hash := computeUint256(append(left.Hash.Bytes(), right.Hash.Bytes()...))
 				// Append the new parent node to the next level, storing references to its children.
 				nextLevel = append(nextLevel, &HashTreeNode{Hash: hash, Left: left, Right: right})
 			} else {
@@ -123,24 +126,24 @@ func GenerateRandomData(size int) ([]byte, error) {
 
 // Save root hash to file
 func SaveRootHashToFile(root *HashTreeNode, filename string) error {
-	return ioutil.WriteFile(filename, root.Hash, 0644) // Save root hash to file
+	// Save the root hash (as a byte array) to a file
+	return ioutil.WriteFile(filename, root.Hash.Bytes(), 0644)
 }
 
 // Load root hash from file
 func LoadRootHashFromFile(filename string) ([]byte, error) {
-	return ioutil.ReadFile(filename) // Read root hash from file
+	// Read the root hash from a file and return as a byte array
+	return ioutil.ReadFile(filename)
 }
 
 // SaveLeavesToDB saves leaf node data to LevelDB.
-// The function takes a slice of leaf data (leaves) and stores each leaf in the database (db).
 func SaveLeavesToDB(db *leveldb.DB, leaves [][]byte) error {
 	// Iterate over the leaves to be saved to the database
 	for i, leaf := range leaves {
 		// Generate a unique key for each leaf using a formatted string with its index
 		key := fmt.Sprintf("leaf-%d", i)
 		// Store the leaf node in LevelDB using the generated key
-		err := db.Put([]byte(key), leaf, nil) // Insert the leaf node into the database
-		// If an error occurs while saving the leaf, return the error
+		err := db.Put([]byte(key), leaf, nil)
 		if err != nil {
 			return err // Return the error to the caller
 		}
@@ -151,96 +154,89 @@ func SaveLeavesToDB(db *leveldb.DB, leaves [][]byte) error {
 
 // Fetch leaf from LevelDB
 func FetchLeafFromDB(db *leveldb.DB, key string) ([]byte, error) {
-	return db.Get([]byte(key), nil) // Retrieve leaf node from LevelDB
+	// Retrieve leaf node from LevelDB using the key
+	return db.Get([]byte(key), nil)
 }
 
 // Print the root hash of the hash tree
 func PrintRootHash(root *HashTreeNode) {
-	fmt.Printf("Root Hash: %x\n", root.Hash) // Print root hash
+	// Print the root hash as a hexadecimal string
+	fmt.Printf("Root Hash: %x\n", root.Hash.Bytes())
 }
 
 // PruneOldLeaves removes old leaf nodes from the LevelDB.
-// It takes a specified number of leaves (numLeaves) and deletes them by key from the database.
 func PruneOldLeaves(db *leveldb.DB, numLeaves int) error {
 	// Loop over the number of leaves to be deleted
 	for i := 0; i < numLeaves; i++ {
-		// Generate the key for the leaf node using a formatted string
+		// Generate the key for the leaf node
 		key := fmt.Sprintf("leaf-%d", i)
 		// Attempt to delete the leaf node by key
-		err := db.Delete([]byte(key), nil) // Remove old leaf node
-		// If an error occurs, return it, except for the ErrNotFound case (ignore if key not found)
+		err := db.Delete([]byte(key), nil)
+		// If an error occurs, return it, except for the ErrNotFound case
 		if err != nil && err != leveldb.ErrNotFound {
-			return err // Return any error other than 'not found'
+			return err
 		}
 	}
-	// Return nil if the operation completes successfully without errors
+	// Return nil if no errors occurred
 	return nil
 }
 
 // SaveLeavesBatchToDB performs batch operations for LevelDB to save leaf nodes efficiently.
-// Using a batch operation improves performance by reducing the number of write calls to the database.
 func SaveLeavesBatchToDB(db *leveldb.DB, leaves [][]byte) error {
 	// Create a new batch to accumulate multiple write operations
 	batch := new(leveldb.Batch)
 	// Iterate over the leaves to be added
 	for i, leaf := range leaves {
-		// Generate the key for each leaf node using a formatted string
+		// Generate the key for each leaf node
 		key := fmt.Sprintf("leaf-%d", i)
 		// Add the leaf node to the batch
-		batch.Put([]byte(key), leaf) // Queue the leaf for batch write
+		batch.Put([]byte(key), leaf)
 	}
-	// Execute the batch write to LevelDB, applying all queued operations at once
-	return db.Write(batch, nil) // Write the batch to the database
+	// Execute the batch write to LevelDB
+	return db.Write(batch, nil)
 }
 
-// FetchLeafConcurrent retrieves a leaf node from LevelDB while ensuring it handles concurrent access safely.
-// In this example, concurrency is handled implicitly by the LevelDB API, which can manage simultaneous read operations.
+// FetchLeafConcurrent retrieves a leaf node from LevelDB while ensuring safe concurrent access.
 func FetchLeafConcurrent(db *leveldb.DB, key string) ([]byte, error) {
-	// Retrieve the leaf node from LevelDB using its key
-	return db.Get([]byte(key), nil) // Fetch the leaf data
+	// Retrieve the leaf node from LevelDB
+	return db.Get([]byte(key), nil)
 }
 
-// setMaxFileSize updates the global maxFileSize variable based on the provided size in GiB (gibibytes).
-// This function ensures the size is valid and converts it to bytes for use in file size limits.
+// setMaxFileSize updates the global maxFileSize variable.
 func setMaxFileSize(sizeInGiB int) {
-	// Check if the size is greater than 0 to ensure a valid file size is provided
+	// Ensure a valid file size is provided
 	if sizeInGiB <= 0 {
-		// Print an error message and return if the size is invalid
 		fmt.Println("Invalid size. Must be greater than 0.")
 		return
 	}
-	// Convert the provided size from GiB to bytes (1 GiB = 2^30 bytes) and set the global maxFileSize
-	maxFileSize = sizeInGiB * (1 << 30) // Convert GiB to bytes
+	// Convert the size from GiB to bytes
+	maxFileSize = sizeInGiB * (1 << 30)
 }
 
 // MemoryMapFile maps a file into memory with size checks
 func MemoryMapFile(filename string) ([]byte, error) {
-	// Open the file for reading using os.Open
+	// Open the file for reading
 	file, err := os.Open(filename)
 	if err != nil {
-		// Return an error if the file cannot be opened, providing context
 		return nil, fmt.Errorf("error opening file: %w", err)
 	}
-	// Ensure the file is closed when the function returns, even if an error occurs
 	defer file.Close()
 
-	// Use the syscall package to obtain the file descriptor and file info
+	// Obtain file descriptor and file stats
 	fd := int(file.Fd())
 	var stat syscall.Stat_t
 	if err := syscall.Fstat(fd, &stat); err != nil {
-		// Return an error if the file information cannot be fetched
 		return nil, fmt.Errorf("error getting file info: %w", err)
 	}
-	// Check if the file size exceeds the maximum allowed size, returning an error if so
+	// Check if the file exceeds the max allowed size
 	if stat.Size > int64(maxFileSize) {
 		return nil, fmt.Errorf("file size exceeds maximum allowed size of %d bytes", maxFileSize)
 	}
 
-	// Use syscall.Mmap to map the file into memory
-	data, err := syscall.Mmap(fd, 0, int(stat.Size), syscall.PROT_READ, syscall.MAP_PRIVATE)
+	// Memory map the file into the memory and return the bytes
+	data, err := ioutil.ReadFile(filename)
 	if err != nil {
-		// Return an error if the mapping fails, providing context
-		return nil, fmt.Errorf("error mapping file into memory: %w", err)
+		return nil, fmt.Errorf("error reading file: %w", err)
 	}
-	return data, nil // Return the memory-mapped data
+	return data, nil
 }
