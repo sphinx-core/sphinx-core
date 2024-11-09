@@ -27,6 +27,7 @@ import (
 	"encoding/base32"
 	"fmt"
 
+	key "github.com/sphinx-core/sphinx-core/src/core/sphincs/key/backend"
 	spxhash "github.com/sphinx-core/sphinx-core/src/core/spxhash/hash"
 	"github.com/tyler-smith/go-bip39"
 	"golang.org/x/crypto/argon2"
@@ -117,27 +118,47 @@ func GeneratePassphrase(entropy []byte) (string, error) {
 	return passphrase, nil
 }
 
-// GeneratePasskey generates a passkey using Argon2 and a random salt plus nonce.
-func GeneratePasskey(passphrase string) ([]byte, error) {
+// GeneratePasskey generates a passkey using Argon2 with the given passphrase and an optional public key as input material.
+// If no public key is provided, a new one will be generated.
+func GeneratePasskey(passphrase string, pk []byte) ([]byte, error) {
+	// Check if pk is nil or empty, and generate a new one if necessary.
+	if pk == nil || len(pk) == 0 {
+		keyManager, err := key.NewKeyManager() // Initialize the KeyManager
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize KeyManager: %v", err)
+		}
+
+		_, generatedPk, err := keyManager.GenerateKey() // Generate a new key pair
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate new public key: %v", err)
+		}
+
+		pk, err = generatedPk.SerializePK() // Serialize the generated public key to bytes
+		if err != nil {
+			return nil, fmt.Errorf("failed to serialize new public key: %v", err)
+		}
+	}
+
 	// Convert the input key material (passphrase) to a byte slice
-	ikm := []byte(passphrase)
+	ikm := append([]byte(passphrase), pk...) // Combine passphrase with pk for key material
+
 	// Generate a random salt
 	salt, err := GenerateSalt()
 	if err != nil {
-		// Return an error if salt generation fails
 		return nil, fmt.Errorf("error generating salt: %v", err)
 	}
+
 	// Generate a random nonce
 	nonce, err := GenerateNonce()
 	if err != nil {
-		// Return an error if nonce generation fails
 		return nil, fmt.Errorf("error generating nonce: %v", err)
 	}
+
 	// Combine the salt and nonce
 	combinedSalt := append(salt, nonce...)
+
 	// Generate a passkey using Argon2 with the combined salt
 	passkey := argon2.IDKey(ikm, combinedSalt, iterations, memory, parallelism, PasskeySize)
-	// Return the generated passkey
 	return passkey, nil
 }
 
@@ -188,8 +209,8 @@ func GenerateKeys() (passphrase string, base32Passkey string, hashedPasskey []by
 		return "", "", nil, fmt.Errorf("failed to generate passphrase: %v", err)
 	}
 
-	// Generate passkey from the passphrase
-	passkey, err := GeneratePasskey(passphrase)
+	// Generate passkey from the passphrase, passing `nil` as the second argument if no public key is provided
+	passkey, err := GeneratePasskey(passphrase, nil)
 	if err != nil {
 		return "", "", nil, fmt.Errorf("failed to generate passkey: %v", err)
 	}
