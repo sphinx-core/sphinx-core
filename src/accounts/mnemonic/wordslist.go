@@ -24,12 +24,19 @@ package sips3
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"math/big"
 	"net/http"
 	"strings"
+	"sync"
 )
+
+// A global map to store hashed passphrases for duplicate checking (use a database in production)
+var passphraseHashes = map[string]struct{}{}
+var mu sync.Mutex // Mutex to synchronize access to the passphraseHashes map
 
 // LoadWords loads the words from the given URL into a slice.
 func LoadWordsFromURL(url string) ([]string, error) {
@@ -67,7 +74,26 @@ func GeneratePassphrase(words []string, wordCount int) (string, error) {
 		}
 		passphrase = append(passphrase, words[randIndex.Int64()])
 	}
-	return strings.Join(passphrase, " "), nil
+
+	passphraseStr := strings.Join(passphrase, " ")
+
+	// Check for duplicates by hashing the passphrase
+	hash := sha256.Sum256([]byte(passphraseStr))
+	hashStr := fmt.Sprintf("%x", hash)
+
+	// Use a mutex to protect access to the shared map
+	mu.Lock()
+	defer mu.Unlock()
+
+	// Check if the hash is already in the map
+	if _, exists := passphraseHashes[hashStr]; exists {
+		return "", errors.New("duplicate passphrase detected, regenerate")
+	}
+
+	// Store the hash of the passphrase to check for duplicates in the future
+	passphraseHashes[hashStr] = struct{}{}
+
+	return passphraseStr, nil
 }
 
 // NewMnemonic generates a mnemonic phrase with a given entropy level.
@@ -83,5 +109,11 @@ func NewMnemonic(entropy int) (string, error) {
 		return "", err
 	}
 
-	return GeneratePassphrase(words, wordCount)
+	// Generate a passphrase, check for uniqueness
+	passphrase, err := GeneratePassphrase(words, wordCount)
+	if err != nil {
+		return "", err
+	}
+
+	return passphrase, nil
 }
