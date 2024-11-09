@@ -102,7 +102,7 @@ func NewMnemonic(entropy int) (string, error) {
 	url := "https://raw.githubusercontent.com/sphinx-core/sips/main/.github/workflows/sips0003/mnemonic.txt"
 
 	// Determine word count based on entropy (e.g., 128 bits of entropy = 12 words)
-	wordCount := entropy / 11 // Adjust based on desired entropy to word ratio
+	wordCount := (entropy + 10) / 11
 
 	words, err := LoadWordsFromURL(url)
 	if err != nil {
