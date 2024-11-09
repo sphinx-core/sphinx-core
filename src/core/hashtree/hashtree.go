@@ -80,13 +80,11 @@ func BuildHashTree(leaves [][]byte) *HashTreeNode {
 	// Create an array of hash tree nodes, where each leaf node is hashed.
 	nodes := make([]*HashTreeNode, len(leaves))
 	for i, leaf := range leaves {
-		// Create a new leaf node by computing the hash of each leaf and storing it in the node.
 		nodes[i] = &HashTreeNode{Hash: computeHash(leaf)}
 	}
 
 	// Continue building the tree until there is only one node left, the root.
 	for len(nodes) > 1 {
-		// Prepare the next level of the tree.
 		var nextLevel []*HashTreeNode
 
 		// Iterate over the current level two nodes at a time.
@@ -99,7 +97,8 @@ func BuildHashTree(leaves [][]byte) *HashTreeNode {
 				// Append the new parent node to the next level, storing references to its children.
 				nextLevel = append(nextLevel, &HashTreeNode{Hash: hash, Left: left, Right: right})
 			} else {
-				// If there is an odd number of nodes, carry the last node to the next level.
+				// If there is an odd number of nodes, do not duplicate the last node, carry it over as is.
+				// We could either keep it unchanged or mark it as invalid if desired.
 				nextLevel = append(nextLevel, nodes[i])
 			}
 		}
