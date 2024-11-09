@@ -27,9 +27,9 @@ import (
 	"encoding/base32"
 	"fmt"
 
+	sips3 "github.com/sphinx-core/sphinx-core/src/accounts/mnemonic"
 	key "github.com/sphinx-core/sphinx-core/src/core/sphincs/key/backend"
 	spxhash "github.com/sphinx-core/sphinx-core/src/core/spxhash/hash"
-	"github.com/tyler-smith/go-bip39"
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/ripemd160"
 )
@@ -106,10 +106,13 @@ func GenerateEntropy() ([]byte, error) {
 	return entropy, nil
 }
 
-// GeneratePassphrase generates a BIP-39 passphrase from entropy.
+// GeneratePassphrase generates a sips0003 passphrase from entropy.
 func GeneratePassphrase(entropy []byte) (string, error) {
-	// Create a new mnemonic (passphrase) from the provided entropy
-	passphrase, err := bip39.NewMnemonic(entropy)
+	// The entropy length is used to determine the mnemonic length
+	entropySize := len(entropy) * 8 // Convert bytes to bits
+
+	// Create a new mnemonic (passphrase) from the provided entropy size
+	passphrase, err := sips3.NewMnemonic(entropySize)
 	if err != nil {
 		// Return an error if passphrase generation fails
 		return "", fmt.Errorf("error generating passphrase: %v", err)
@@ -121,8 +124,8 @@ func GeneratePassphrase(entropy []byte) (string, error) {
 // GeneratePasskey generates a passkey using Argon2 with the given passphrase and an optional public key as input material.
 // If no public key is provided, a new one will be generated.
 func GeneratePasskey(passphrase string, pk []byte) ([]byte, error) {
-	// Check if pk is nil or empty, and generate a new one if necessary.
-	if pk == nil || len(pk) == 0 {
+	// Check if pk is empty, and generate a new one if necessary.
+	if len(pk) == 0 {
 		keyManager, err := key.NewKeyManager() // Initialize the KeyManager
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize KeyManager: %v", err)
