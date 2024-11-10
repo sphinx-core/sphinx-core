@@ -102,7 +102,7 @@ func GenerateEntropy() ([]byte, error) {
 		// Return an error if entropy generation fails
 		return nil, fmt.Errorf("error generating entropy: %v", err)
 	}
-	// Return the raw entropy for BIP-39
+	// Return the raw entropy for sips3
 	return entropy, nil
 }
 

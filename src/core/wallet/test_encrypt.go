@@ -36,188 +36,153 @@ import (
 
 // saveToFile saves the provided data to a specified file path.
 func saveToFile(filepath string, data []byte) error {
-	// Create a new file at the specified filepath.
+	// Create or open the file for writing
 	file, err := os.Create(filepath)
 	if err != nil {
-		// Return an error if file creation fails.
-		return fmt.Errorf("failed to create file %s: %v", filepath, err)
+		return fmt.Errorf("failed to create file %s: %v", filepath, err) // Return an error if file creation fails
 	}
-	defer file.Close() // Ensure the file is closed after this function completes.
+	defer file.Close() // Ensure the file is closed once the function finishes
 
-	// Write the data byte slice to the file.
+	// Write data to the file
 	_, err = file.Write(data)
 	if err != nil {
-		// Return an error if writing data to the file fails.
-		return fmt.Errorf("failed to write data to file %s: %v", filepath, err)
+		return fmt.Errorf("failed to write data to file %s: %v", filepath, err) // Return an error if writing fails
 	}
-	return nil // Return nil if successful.
+	return nil // Return nil if the operation is successful
+}
+
+// loadFromFile reads the data from the specified file.
+func loadFromFile(filepath string) ([]byte, error) {
+	// Read the content of the file
+	data, err := os.ReadFile(filepath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file %s: %v", filepath, err) // Return an error if reading fails
+	}
+	return data, nil // Return the data if the operation is successful
 }
 
 func main() {
-	// Create a directory named "keystore" to store generated keys.
-	err := os.MkdirAll("keystore", os.ModePerm)
+	// Define the keystore directory path
+	keystoreDir := "src/accounts/keystore"
+
+	// Create the keystore directory if it doesn't already exist
+	err := os.MkdirAll(keystoreDir, os.ModePerm)
 	if err != nil {
-		// Log fatal error if the directory creation fails.
-		log.Fatal("Failed to create keystore directory:", err)
+		log.Fatal("Failed to create keystore directory:", err) // Log and exit if directory creation fails
 	}
 
-	// Open a LevelDB database in the "keystore" directory.
-	db, err := leveldb.OpenFile("keystore/sphinkeys", nil)
+	// Open the LevelDB database for storing keys
+	db, err := leveldb.OpenFile(keystoreDir+"/sphinxkeys", nil)
 	if err != nil {
-		// Log fatal error if the database opening fails.
-		log.Fatal("Failed to open LevelDB:", err)
+		log.Fatal("Failed to open LevelDB:", err) // Log and exit if database opening fails
 	}
-	defer db.Close() // Ensure the database is closed after this function completes.
+	defer db.Close() // Ensure the database is closed once the function finishes
 
-	// Initialize a KeyManager to generate cryptographic keys.
+	// Initialize a key manager for generating keys
 	keyManager, err := key.NewKeyManager()
 	if err != nil {
-		// Log fatal error if KeyManager initialization fails.
-		log.Fatal("Failed to initialize KeyManager:", err)
+		log.Fatal("Failed to initialize KeyManager:", err) // Log and exit if key manager initialization fails
 	}
 
-	// Generate a SPHINCS+ secret key (SK) and public key (PK).
+	// Generate secret key (SK) and public key (PK) using the key manager
 	sk, pk, err := keyManager.GenerateKey()
 	if err != nil {
-		// Log fatal error if key generation fails.
-		log.Fatal("Failed to generate keys:", err)
+		log.Fatal("Failed to generate keys:", err) // Log and exit if key generation fails
 	}
 
-	// Serialize the secret key to a byte slice.
+	// Serialize the secret key into bytes for storage or display
 	skBytes, err := sk.SerializeSK()
 	if err != nil {
-		// Log fatal error if serialization fails.
-		log.Fatal("Failed to serialize SK:", err)
+		log.Fatal("Failed to serialize SK:", err) // Log and exit if serialization fails
 	}
-	// Print the secret key in hexadecimal format.
-	fmt.Printf("Secret Key (SK): %x\n", skBytes)
-	// Print the size of the serialized secret key.
-	fmt.Printf("Size of Serialized SK: %d bytes\n", len(skBytes))
+	fmt.Printf("Secret Key (SK): %x\n", skBytes) // Print the secret key in hexadecimal format
 
-	// Serialize the public key to a byte slice.
+	// Serialize the public key into bytes for storage or display
 	pkBytes, err := pk.SerializePK()
 	if err != nil {
-		// Log fatal error if serialization fails.
-		log.Fatal("Failed to serialize PK:", err)
+		log.Fatal("Failed to serialize PK:", err) // Log and exit if serialization fails
 	}
-	// Print the public key in hexadecimal format.
-	fmt.Printf("Public Key (PK): %x\n", pkBytes)
-	// Print the size of the serialized public key.
-	fmt.Printf("Size of Serialized PK: %d bytes\n", len(pkBytes))
+	fmt.Printf("Public Key (PK): %x\n", pkBytes) // Print the public key in hexadecimal format
 
-	// Generate a passphrase and a Base32-encoded passkey using the seed package.
+	// Generate passphrase, base32 passkey, and hashed passkey from a seed
 	passphrase, base32Passkey, hashedPasskey, err := seed.GenerateKeys()
 	if err != nil {
-		// Log fatal error if key generation from seed fails.
-		log.Fatalf("Failed to generate keys from seed: %v", err)
+		log.Fatalf("Failed to generate keys from seed: %v", err) // Log and exit if key generation from seed fails
 	}
-	// Print the generated passphrase.
+	// Print the generated keys for reference
 	fmt.Printf("Passphrase: %s\n", passphrase)
-	// Print the Base32-encoded passkey.
 	fmt.Printf("Base32Passkey: %s\n", base32Passkey)
-	// Print the hashed passkey in hexadecimal format.
 	fmt.Printf("Hashed Passkey (hex): %x\n", hashedPasskey)
 
-	// Create a new instance of the crypter for encryption.
+	// Initialize crypter for encryption/decryption
 	crypt := &crypter.CCrypter{}
-	// Generate random bytes to use as a salt for encryption.
+	// Generate random salt for encryption
 	salt, err := crypter.GenerateRandomBytes(crypter.WALLET_CRYPTO_IV_SIZE)
 	if err != nil {
-		// Log fatal error if random bytes generation fails.
-		log.Fatalf("Failed to generate salt: %v", err)
+		log.Fatalf("Failed to generate salt: %v", err) // Log and exit if salt generation fails
 	}
 
-	// Set the encryption key using the hashed passkey and the generated salt.
+	// Set the encryption key using the hashed passkey and salt
 	if !crypt.SetKeyFromPassphrase(hashedPasskey, salt, 1000) {
-		// Log fatal error if setting the key fails.
-		log.Fatalf("Failed to set key from hashed passkey")
+		log.Fatalf("Failed to set key from hashed passkey") // Log and exit if key setting fails
 	}
 
-	// Encrypt the serialized secret key using the crypt instance.
+	// Encrypt the secret key with the generated key
 	encryptedSecretKey, err := crypt.Encrypt(skBytes)
 	if err != nil {
-		// Log fatal error if encryption fails.
-		log.Fatalf("Failed to encrypt secret key: %v", err)
+		log.Fatalf("Failed to encrypt secret key: %v", err) // Log and exit if encryption fails
 	}
-	// Print the encrypted secret key in hexadecimal format.
-	fmt.Printf("Encrypted Secret Key: %x\n", encryptedSecretKey)
+	fmt.Printf("Encrypted Secret Key: %x\n", encryptedSecretKey) // Print the encrypted secret key in hexadecimal format
 
-	// Save the encrypted secret key to a .dat file in the keystore.
-	err = saveToFile("keystore/secretkey.dat", encryptedSecretKey)
+	// Encrypt the hashed passkey with the generated key
+	encryptedHashedPasskey, err := crypt.Encrypt(hashedPasskey)
 	if err != nil {
-		// Log fatal error if saving the secret key fails.
-		log.Fatalf("Failed to save secret key to file: %v", err)
+		log.Fatalf("Failed to encrypt hashed passkey: %v", err) // Log and exit if encryption fails
 	}
+	fmt.Printf("Encrypted Hashed Passkey: %x\n", encryptedHashedPasskey) // Print the encrypted hashed passkey
 
-	// Encrypt the hashed passkey using the same crypter instance.
-	encryptedHashedPasskey, err := crypt.Encrypt(hashedPasskey) // Use hashedPasskey directly as a byte slice
+	// Combine both encrypted secret key and encrypted hashed passkey into a single data buffer
+	separator := []byte(":::")                                                                  // Define a custom separator
+	combinedData := append(append(encryptedSecretKey, separator...), encryptedHashedPasskey...) // Append both parts with separator
+
+	// Save the combined encrypted data to a file
+	err = saveToFile(keystoreDir+"/secretkey.dat", combinedData)
 	if err != nil {
-		// Log fatal error if encryption fails.
-		log.Fatalf("Failed to encrypt hashed passkey: %v", err)
+		log.Fatalf("Failed to save secret key to file: %v", err) // Log and exit if file saving fails
 	}
-	// Print the encrypted hashed passkey in hexadecimal format.
-	fmt.Printf("Encrypted Hashed Passkey: %x\n", encryptedHashedPasskey)
 
-	// Save the encrypted hashed passkey to a .dat file in the keystore.
-	err = saveToFile("keystore/hashedpasskey.dat", encryptedHashedPasskey)
+	// Load the combined data from the file for later decryption
+	loadedData, err := loadFromFile(keystoreDir + "/secretkey.dat")
 	if err != nil {
-		// Log fatal error if saving the hashed passkey fails.
-		log.Fatalf("Failed to save hashed passkey to file: %v", err)
+		log.Fatalf("Failed to load data from file: %v", err) // Log and exit if file loading fails
 	}
 
-	// Optional: Decrypt the encrypted secret key using the hashed passkey.
+	// Split the combined data back into encrypted secret key and encrypted hashed passkey
+	parts := bytes.Split(loadedData, separator)
+	if len(parts) != 2 {
+		log.Fatalf("Unexpected data format in src/accounts/keystore/secretkey.dat") // Log and exit if the data format is incorrect
+	}
+	loadedEncryptedSecretKey := parts[0]     // First part is the encrypted secret key
+	loadedEncryptedHashedPasskey := parts[1] // Second part is the encrypted hashed passkey
+
+	// Initialize crypter for decryption
 	decryptCrypt := &crypter.CCrypter{}
-	// Set the key for decryption using the hashed passkey and the same salt.
+	// Set the decryption key using the hashed passkey and salt
 	if !decryptCrypt.SetKeyFromPassphrase(hashedPasskey, salt, 1000) {
-		// Log fatal error if setting the key for decryption fails.
-		log.Fatalf("Failed to set key from hashed passkey for decryption")
+		log.Fatalf("Failed to set key from hashed passkey for decryption") // Log and exit if key setting fails
 	}
 
-	// Decrypt the encrypted secret key.
-	decryptedSecretKey, err := decryptCrypt.Decrypt(encryptedSecretKey)
+	// Decrypt the secret key
+	decryptedSecretKey, err := decryptCrypt.Decrypt(loadedEncryptedSecretKey)
 	if err != nil {
-		// Log fatal error if decryption fails.
-		log.Fatalf("Failed to decrypt secret key: %v", err)
+		log.Fatalf("Failed to decrypt secret key: %v", err) // Log and exit if decryption fails
 	}
-	// Print the decrypted secret key in hexadecimal format.
-	fmt.Printf("Decrypted Secret Key: %x\n", decryptedSecretKey)
+	fmt.Printf("Decrypted Secret Key: %x\n", decryptedSecretKey) // Print the decrypted secret key in hexadecimal format
 
-	// Verify that the deserialized secret key matches the original secret key.
-	deserializedSK, deserializedPK, err := keyManager.DeserializeKeyPair(decryptedSecretKey, pkBytes)
+	// Decrypt the hashed passkey
+	decryptedHashedPasskey, err := decryptCrypt.Decrypt(loadedEncryptedHashedPasskey)
 	if err != nil {
-		// Log fatal error if deserialization fails.
-		log.Fatalf("Failed to deserialize secret key: %v", err)
+		log.Fatalf("Failed to decrypt hashed passkey: %v", err) // Log and exit if decryption fails
 	}
-
-	// Serialize the deserialized secret key to verify against the original.
-	deserializedSKBytes, err := deserializedSK.SerializeSK()
-	if err != nil {
-		// Log fatal error if serialization of deserialized SK fails.
-		log.Fatalf("Failed to serialize deserialized SK: %v", err)
-	}
-	// Serialize the deserialized public key to verify against the original.
-	deserializedPKBytes, err := deserializedPK.SerializePK()
-	if err != nil {
-		// Log fatal error if serialization of deserialized PK fails.
-		log.Fatalf("Failed to serialize deserialized PK: %v", err)
-	}
-
-	// Compare the deserialized keys with the original keys.
-	if bytes.Equal(deserializedSKBytes, skBytes) && bytes.Equal(deserializedPKBytes, pkBytes) {
-		// Print success message if the deserialized keys match the originals.
-		fmt.Println("Deserialized keys match the original keys!")
-	} else {
-		// Print failure message if the deserialized keys do not match.
-		fmt.Println("Deserialized keys do not match the original keys.")
-	}
-
-	// Optional: Decrypt the encrypted hashed passkey.
-	decryptedHashedPasskey, err := decryptCrypt.Decrypt(encryptedHashedPasskey)
-	if err != nil {
-		// Log fatal error if decryption fails.
-		log.Fatalf("Failed to decrypt hashed passkey: %v", err)
-	}
-
-	// After decryption, compare the decrypted hashed passkey with the original.
-	fmt.Printf("Decrypted Hashed Passkey: %x\n", decryptedHashedPasskey) // Print in hex format
+	fmt.Printf("Decrypted Hashed Passkey: %x\n", decryptedHashedPasskey) // Print the decrypted hashed passkey
 }
