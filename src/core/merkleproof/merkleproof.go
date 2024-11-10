@@ -24,7 +24,6 @@ package merkleproof
 
 import (
 	"bytes"
-	"encoding/hex"
 	"errors"
 
 	"github.com/kasperdi/SPHINCSPLUS-golang/sphincs"
@@ -80,24 +79,22 @@ func CreateMerkleProof(sig *sphincs.SPHINCS_SIG, sigParts [][]byte) (*MerkleProo
 
 // generateProof traverses the Merkle tree to generate the proof path
 func generateProof(root *hashtree.HashTreeNode, leafIndex int, sigParts [][]byte) ([][]byte, error) {
-	// Construct the proof path by traversing the tree and adding sibling hashes
 	proof := [][]byte{}
+	currentNode := root
 
-	// Traverse up the tree from the leaf node
-	for currentNode := root; currentNode != nil; {
-		// If the tree has a way to access the sibling node, update this logic
+	for currentNode != nil {
+		// Attempt to get the sibling node
 		siblingNode, err := currentNode.GetSiblingNode(leafIndex)
 		if err != nil {
-			return nil, err
-		}
-
-		// Add the sibling hash to the proof
-		if siblingNode != nil {
+			// If no sibling is found (due to an odd number of nodes), duplicate the current node
+			proof = append(proof, currentNode.Hash.Bytes())
+		} else {
 			proof = append(proof, siblingNode.Hash.Bytes())
 		}
 
-		// Move up the tree to the parent node
-		currentNode = currentNode.Parent // Ensure that Parent exists or modify accordingly
+		// Move up the tree, adjust leafIndex if needed for the parent node
+		leafIndex /= 2
+		currentNode = currentNode.Parent
 	}
 
 	if len(proof) == 0 {
@@ -109,18 +106,17 @@ func generateProof(root *hashtree.HashTreeNode, leafIndex int, sigParts [][]byte
 
 // VerifyMerkleProof verifies a Merkle proof by reconstructing the Merkle root and comparing with the provided root
 func VerifyMerkleProof(proof *MerkleProof, leafHash []byte, merkleRoot *hashtree.HashTreeNode) bool {
-	// Start with the leaf hash and reconstruct the Merkle root using the proof path
 	currentHash := leafHash
-	for _, siblingHash := range proof.SiblingHashes {
-		// Combine the current hash with the sibling hash (could be left or right depending on the tree structure)
-		// Here we assume a left-to-right traversal, but this should be adapted based on tree structure
-		currentHash = combineHashes(currentHash, siblingHash)
+	for i, siblingHash := range proof.SiblingHashes {
+		if (proof.LeafIndex>>i)&1 == 0 {
+			// Current node is on the left; sibling is on the right
+			currentHash = combineHashes(currentHash, siblingHash)
+		} else {
+			// Current node is on the right; sibling is on the left
+			currentHash = combineHashes(siblingHash, currentHash)
+		}
 	}
-
-	// Compare the reconstructed hash with the provided Merkle root
-	rebuiltRootHash := currentHash
-	merkleRootHashBytes := merkleRoot.Hash.Bytes()
-	return hex.EncodeToString(rebuiltRootHash) == hex.EncodeToString(merkleRootHashBytes)
+	return bytes.Equal(currentHash, merkleRoot.Hash.Bytes())
 }
 
 // combineHashes combines two hashes in a way that is consistent with Merkle tree verification (hash concatenation or other)

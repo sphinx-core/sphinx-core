@@ -178,12 +178,6 @@ func FetchLeafFromDB(db *leveldb.DB, key string) ([]byte, error) {
 	return db.Get([]byte(key), nil)
 }
 
-// Print the root hash of the hash tree
-func PrintRootHash(root *HashTreeNode) {
-	// Print the root hash as a hexadecimal string
-	fmt.Printf("Root Hash: %x\n", root.Hash.Bytes())
-}
-
 // PruneOldLeaves removes old leaf nodes from the LevelDB.
 func PruneOldLeaves(db *leveldb.DB, numLeaves int) error {
 	// Loop over the number of leaves to be deleted
