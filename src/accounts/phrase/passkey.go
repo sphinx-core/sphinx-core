@@ -24,6 +24,7 @@ package seed
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base32"
 	"fmt"
 
@@ -124,7 +125,7 @@ func GeneratePassphrase(entropy []byte) (string, error) {
 // GeneratePasskey generates a passkey using Argon2 with the given passphrase and an optional public key as input material.
 // If no public key is provided, a new one will be generated.
 func GeneratePasskey(passphrase string, pk []byte) ([]byte, error) {
-	// Check if pk is empty, and generate a new one if necessary.
+	// Step 1: Check if pk is empty, and generate a new one if necessary.
 	if len(pk) == 0 {
 		keyManager, err := key.NewKeyManager() // Initialize the KeyManager
 		if err != nil {
@@ -142,26 +143,32 @@ func GeneratePasskey(passphrase string, pk []byte) ([]byte, error) {
 		}
 	}
 
-	// Convert the input key material (passphrase) to a byte slice
-	ikm := append([]byte(passphrase), pk...) // Combine passphrase with pk for key material
+	// Step 2: Convert the passphrase to bytes
+	passphraseBytes := []byte(passphrase)
 
-	// Generate a random salt
+	// Step 3: Perform double SHA-256 hashing on the public key
+	firstHash := sha256.Sum256(pk)                // First SHA-256 hash of the public key
+	doubleHashedPk := sha256.Sum256(firstHash[:]) // Second SHA-256 hash (double hash) of the public key
+
+	// Step 4: Combine passphrase and double-hashed public key for key material
+	ikmHashInput := append(passphraseBytes, doubleHashedPk[:]...)
+	ikm := sha256.Sum256(ikmHashInput) // Using SHA-256 to derive initial key material (IKM)
+
+	// Step 5: Generate a random salt and nonce
 	salt, err := GenerateSalt()
 	if err != nil {
 		return nil, fmt.Errorf("error generating salt: %v", err)
 	}
-
-	// Generate a random nonce
 	nonce, err := GenerateNonce()
 	if err != nil {
 		return nil, fmt.Errorf("error generating nonce: %v", err)
 	}
 
-	// Combine the salt and nonce
+	// Step 6: Combine salt and nonce to create a unique salt for Argon2
 	combinedSalt := append(salt, nonce...)
 
-	// Generate a passkey using Argon2 with the combined salt
-	passkey := argon2.IDKey(ikm, combinedSalt, iterations, memory, parallelism, PasskeySize)
+	// Step 7: Derive the passkey using Argon2 with IKM and combined salt
+	passkey := argon2.IDKey(ikm[:], combinedSalt, iterations, memory, parallelism, PasskeySize)
 	return passkey, nil
 }
 
