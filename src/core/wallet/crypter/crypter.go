@@ -31,7 +31,8 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
-	"math/big"
+
+	"github.com/holiman/uint256"
 )
 
 const (
@@ -94,28 +95,27 @@ func (mk *MasterKey) Deserialize(data []byte) error {
 	return json.Unmarshal(data, mk)
 }
 
-// Uint256 represents a 256-bit integer.
+// Uint256 represents a 256-bit unsigned integer.
 type Uint256 struct {
-	bigInt *big.Int
+	uint256 *uint256.Int
 }
 
 // NewUint256 creates a new Uint256 from a byte slice.
 func NewUint256(b []byte) *Uint256 {
 	u := new(Uint256)
-	u.bigInt = new(big.Int).SetBytes(b)
+	u.uint256 = new(uint256.Int).SetBytes(b)
 	return u
 }
 
-// ToBytes converts Uint256 to byte slice.
+// ToBytes converts Uint256 to a byte slice.
 func (u *Uint256) ToBytes() []byte {
-	return u.bigInt.Bytes()
+	return u.uint256.Bytes()
 }
 
-// BytesToUint256 converts byte slice to Uint256.
-// Convert a byte slice to Uint256
+// BytesToUint256 converts a byte slice to Uint256.
 func BytesToUint256(b []byte) *Uint256 {
 	u := new(Uint256)
-	u.bigInt = new(big.Int).SetBytes(b)
+	u.uint256 = new(uint256.Int).SetBytes(b)
 	return u
 }
 
