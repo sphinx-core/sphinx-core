@@ -38,6 +38,6 @@ func main() {
 
 	// Print the generated passphrase, Base32-encoded passkey, and hashed passkey
 	fmt.Printf("Passphrase: %s\n", passphrase)
-	fmt.Printf("Base32Passkey: %s\n", base32Passkey)
 	fmt.Printf("Hashed Passkey: %x\n", hashedPasskey)
+	fmt.Printf("Base32Passkey: %s\n", base32Passkey)
 }
