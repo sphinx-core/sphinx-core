@@ -113,11 +113,11 @@ func GeneratePassphrase(entropy []byte) (string, error) {
 	entropySize := len(entropy) * 8 // Convert bytes to bits
 
 	// Create a new mnemonic (passphrase) from the provided entropy size
-	passphrase, err := sips3.NewMnemonic(entropySize)
+	passphrase, _, err := sips3.NewMnemonic(entropySize)
 	if err != nil {
-		// Return an error if passphrase generation fails
-		return "", fmt.Errorf("error generating passphrase: %v", err)
+		return "", fmt.Errorf("error generating mnemonic: %v", err)
 	}
+
 	// Return the generated passphrase
 	return passphrase, nil
 }
