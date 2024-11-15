@@ -98,8 +98,8 @@ func GeneratePassphrase(words []string, wordCount int) (string, string, error) {
 	}
 	nonceStr := fmt.Sprintf("%x", nonce)
 
-	// Combine the nonce and passphrase, then compute a SHA-256 hash
-	dataToHash := nonceStr + passphraseStr
+	// Combine the nonce and passphrase with a delimiter
+	dataToHash := nonceStr + "|" + passphraseStr
 	hash := sha256.Sum256([]byte(dataToHash))
 	hashStr := fmt.Sprintf("%x", hash)
 
