@@ -99,6 +99,12 @@ func GeneratePassphrase(words []string, wordCount int) (string, string, error) {
 	nonceStr := fmt.Sprintf("%x", nonce)
 
 	// Combine the nonce and passphrase with a delimiter
+	// Using a delimiter ensures that the nonce and passphrase are distinctly separated.
+	// Without a delimiter, there could be ambiguity if the nonce and passphrase
+	// have overlapping characters, leading to potential hash collisions.
+	// Example: nonce="abc", passphrase="def" results in "abcdef".
+	// Another combination, nonce="ab", passphrase="cdef", also results in "abcdef".
+	// Adding a delimiter (e.g., "|") makes the combined string unambiguous.
 	dataToHash := nonceStr + "|" + passphraseStr
 	hash := sha256.Sum256([]byte(dataToHash))
 	hashStr := fmt.Sprintf("%x", hash)
