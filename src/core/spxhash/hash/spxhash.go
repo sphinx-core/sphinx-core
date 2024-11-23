@@ -151,8 +151,8 @@ const (
 	saltSize = 16                 // Size of salt in bytes (128 bits = 16 bytes)
 
 	// Argon2 parameters
-	// Argon memory standard that is required minimum 15Mib memory in allocation
-	memory           = 64 * 1024 // Memory cost set to 64 KiB (64 * 1024 bytes)
+	// Argon memory standard is required minimum 15MiB (15 * 1024 * 1024) memory in allocation
+	memory           = 64 * 1024 // Memory cost set to 64 KiB (64 * 1024 bytes) is for demonstration purpose
 	iterations       = 2         // Number of iterations for Argon2id set to 2
 	parallelism      = 1         // Degree of parallelism set to 1
 	tagSize          = 32        // Tag size set to 256 bits (32 bytes)

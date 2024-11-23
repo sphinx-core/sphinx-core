@@ -57,9 +57,9 @@ const (
 	PasskeySize = 32 // Set this to 32 bytes for a 256-bit output
 	NonceSize   = 8  // 64 bits nonce size, adjustable as needed
 
-	// Argon2 parameters for password hashing
-	// Argon memory standard that is required minimum 15MiB memory in allocation
-	memory      = 64 * 1024 // Memory cost set to 64 KiB (64 * 1024 bytes)
+	// Argon2 parameters
+	// Argon memory standard is required minimum 15MiB (15 * 1024 * 1024) memory in allocation
+	memory      = 64 * 1024 // Memory cost set to 64 KiB (64 * 1024 bytes) is for demonstration purpose
 	iterations  = 2         // Number of iterations for Argon2id set to 2
 	parallelism = 1         // Degree of parallelism set to 1
 	tagSize     = 32        // Tag size set to 256 bits (32 bytes)
