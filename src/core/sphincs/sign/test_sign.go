@@ -137,8 +137,8 @@ func main() {
 	}
 	fmt.Printf("Random Data: %x\n", randomData)
 
-	// Print root hash from the Merkle tree
-	hashtree.PrintRootHash(merkleRoot)
+	// Print the Merkle root hash directly
+	fmt.Printf("Merkle Tree Root Hash: %x\n", merkleRoot.Hash)
 
 	// Verify the signature and print the original message
 	isValid := manager.VerifySignature(km.Params, message, sig, deserializedPK, merkleRoot)
