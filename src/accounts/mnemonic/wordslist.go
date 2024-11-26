@@ -163,11 +163,23 @@ func GeneratePassphrase(words []string, wordCount int) (string, string, error) {
 	}
 	passphraseHashes[hashStr] = struct{}{}
 
-	// Base64 encode the nonce for secure transmission
+	// Base64 encode the passphrase for secure transmission
+	encodedPassphrase := base64.StdEncoding.EncodeToString([]byte(passphraseStr))
 	encodedNonce := base64.StdEncoding.EncodeToString([]byte(nonceStr))
 
-	// Return passphrase in plain text (words) and encoded nonce
-	return passphraseStr, encodedNonce, nil
+	// Decode the base64 encoded passphrase and nonce back into their original forms
+	decodedPassphrase, err := base64.StdEncoding.DecodeString(encodedPassphrase)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to decode passphrase: %w", err)
+	}
+
+	decodedNonce, err := base64.StdEncoding.DecodeString(encodedNonce)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to decode nonce: %w", err)
+	}
+
+	// Return decoded passphrase and nonce as strings
+	return string(decodedPassphrase), string(decodedNonce), nil
 }
 
 // NewMnemonic generates a mnemonic from any .txt file in the directory
