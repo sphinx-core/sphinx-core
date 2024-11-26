@@ -25,127 +25,159 @@ package sips3
 import (
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/big"
 	"net/http"
 	"strings"
 	"sync"
 )
 
-// A global map to store hashed passphrases for duplicate checking.
-// In production, consider replacing this with a database for persistence and scalability.
-var passphraseHashes = map[string]struct{}{}
-
-// Mutex to synchronize access to the shared map to prevent race conditions.
-var mu sync.Mutex
-
-// LoadWordsFromURL fetches a list of words from the provided URL and returns them as a slice of strings.
-// Each word is trimmed of whitespace and newlines are used as separators.
-func LoadWordsFromURL(url string) ([]string, error) {
-	// Make an HTTP GET request to fetch the word list
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch words from URL: %w", err)
-	}
-	defer resp.Body.Close() // Ensure response body is closed to avoid resource leaks
-
-	// Read the response body
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	// Split the content into individual words and trim whitespace
-	var words []string
-	for _, word := range strings.Split(string(body), "\n") {
-		trimmedWord := strings.TrimSpace(word)
-		if trimmedWord != "" {
-			words = append(words, trimmedWord)
-		}
-	}
-
-	return words, nil
+// GitHubFile represents the structure of file information returned by GitHub's API
+type GitHubFile struct {
+	Name string `json:"name"` // Name of the file
+	Path string `json:"path"` // Path to the file in the repository
+	Type string `json:"type"` // Type of the file (e.g., file, directory)
 }
 
-// GeneratePassphrase creates a secure passphrase consisting of a specified number of words.
-// It appends a cryptographic nonce to the passphrase to ensure uniqueness.
-func GeneratePassphrase(words []string, wordCount int) (string, string, error) {
-	// Ensure the word list is not empty
-	if len(words) == 0 {
-		return "", "", errors.New("word list is empty")
+// Base URL for accessing the repository directory on GitHub
+const baseURL = "https://api.github.com/repos/sphinx-core/sips/contents/.github/workflows/sips0003"
+
+// Mutex and map used for preventing duplicate passphrases
+var (
+	mu               sync.Mutex              // Ensures thread-safe access to shared resources
+	passphraseHashes = map[string]struct{}{} // Stores hashes of generated passphrases
+)
+
+// FetchFileList fetches the list of files from a specified URL
+func FetchFileList(url string) ([]GitHubFile, error) {
+	resp, err := http.Get(url) // Sends an HTTP GET request to the specified URL
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch file list: %w", err) // Returns an error if the request fails
+	}
+	defer resp.Body.Close() // Ensures the response body is closed after function execution
+
+	if resp.StatusCode != http.StatusOK { // Checks if the HTTP status is OK (200)
+		return nil, fmt.Errorf("unexpected response: %s", resp.Status) // Returns an error for unexpected responses
 	}
 
-	// Build the passphrase by randomly selecting words from the list
-	var passphrase []string
-	for i := 0; i < wordCount; i++ {
-		// Generate a secure random index for selecting a word
-		randIndex, err := rand.Int(rand.Reader, big.NewInt(int64(len(words))))
-		if err != nil {
-			return "", "", fmt.Errorf("failed to generate random index: %w", err)
+	var files []GitHubFile                                            // Declares a slice to store file information
+	if err := json.NewDecoder(resp.Body).Decode(&files); err != nil { // Decodes the JSON response into the slice
+		return nil, fmt.Errorf("failed to decode response: %w", err) // Returns an error if decoding fails
+	}
+
+	return files, nil // Returns the list of files
+}
+
+// SelectAndLoadTxtFile selects a random .txt file and loads its content
+func SelectAndLoadTxtFile(url string) ([]string, error) {
+	files, err := FetchFileList(url) // Fetches the list of files from the repository
+	if err != nil {
+		return nil, err // Returns an error if file fetching fails
+	}
+
+	// Filters the files to include only those with a .txt extension
+	var txtFiles []GitHubFile
+	for _, file := range files {
+		if strings.HasSuffix(file.Name, ".txt") { // Checks if the file name ends with .txt
+			txtFiles = append(txtFiles, file) // Adds the .txt file to the list
 		}
-		passphrase = append(passphrase, words[randIndex.Int64()])
 	}
 
-	// Join the selected words into a single string
-	passphraseStr := strings.Join(passphrase, " ")
+	if len(txtFiles) == 0 { // Checks if no .txt files were found
+		return nil, errors.New("no .txt files found in the directory") // Returns an error
+	}
 
-	// Generate a random nonce (128-bit value encoded as a hexadecimal string)
+	// Selects a random .txt file from the list
+	selectedFile := txtFiles[0] // Defaults to the first file
+	if len(txtFiles) > 1 {      // If more than one .txt file exists
+		randIndex, _ := rand.Int(rand.Reader, big.NewInt(int64(len(txtFiles)))) // Generates a random index
+		selectedFile = txtFiles[randIndex.Int64()]                              // Selects the file at the random index
+	}
+
+	// Constructs the URL for fetching the raw content of the selected file
+	rawBaseURL := "https://raw.githubusercontent.com/sphinx-core/sips/main/.github/workflows/sips0003/"
+	fileURL := rawBaseURL + selectedFile.Name
+
+	// Fetches the content of the selected file
+	resp, err := http.Get(fileURL) // Sends an HTTP GET request to the file URL
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch file content: %w", err) // Returns an error if the request fails
+	}
+	defer resp.Body.Close() // Ensures the response body is closed after function execution
+
+	body, err := io.ReadAll(resp.Body) // Reads the response body
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file content: %w", err) // Returns an error if reading fails
+	}
+
+	// Splits the content into individual words and trims whitespace
+	var words []string
+	for _, word := range strings.Split(string(body), "\n") {
+		trimmedWord := strings.TrimSpace(word) // Removes leading/trailing whitespace
+		if trimmedWord != "" {                 // Ignores empty lines
+			words = append(words, trimmedWord) // Adds the word to the list
+		}
+	}
+
+	return words, nil // Returns the list of words
+}
+
+// GeneratePassphrase creates a secure passphrase using a given word list
+func GeneratePassphrase(words []string, wordCount int) (string, string, error) {
+	if len(words) == 0 { // Checks if the word list is empty
+		return "", "", errors.New("word list is empty") // Returns an error
+	}
+
+	var passphrase []string          // Stores the generated passphrase
+	for i := 0; i < wordCount; i++ { // Loops to generate the required number of words
+		randIndex, err := rand.Int(rand.Reader, big.NewInt(int64(len(words)))) // Generates a random index
+		if err != nil {                                                        // Checks if random index generation fails
+			return "", "", fmt.Errorf("failed to generate random index: %w", err) // Returns an error
+		}
+		passphrase = append(passphrase, words[randIndex.Int64()]) // Adds the selected word to the passphrase
+	}
+
+	passphraseStr := strings.Join(passphrase, " ") // Joins the words to form the passphrase string
+
+	// Generate a nonce
 	nonce := make([]byte, 16)
 	if _, err := rand.Read(nonce); err != nil {
 		return "", "", fmt.Errorf("failed to generate nonce: %w", err)
 	}
-	nonceStr := fmt.Sprintf("%x", nonce)
+	nonceStr := fmt.Sprintf("%x", nonce) // Converts the nonce to a hexadecimal string
 
-	// Combine the nonce and passphrase with a delimiter
-	// Using a delimiter ensures that the nonce and passphrase are distinctly separated.
-	// Without a delimiter, there could be ambiguity if the nonce and passphrase
-	// have overlapping characters, leading to potential hash collisions.
-	// Example: nonce="abc", passphrase="def" results in "abcdef".
-	// Another combination, nonce="ab", passphrase="cdef", also results in "abcdef".
-	// Adding a delimiter (e.g., "|") makes the combined string unambiguous.
+	// Combines the nonce and passphrase for hashing
 	dataToHash := nonceStr + "|" + passphraseStr
-	hash := sha256.Sum256([]byte(dataToHash))
-	hashStr := fmt.Sprintf("%x", hash)
+	hash := sha256.Sum256([]byte(dataToHash)) // Generates the SHA-256 hash of the data
+	hashStr := fmt.Sprintf("%x", hash)        // Converts the hash to a hexadecimal string
 
-	// Synchronize access to the shared map to prevent race conditions
+	// Ensure passphrase uniqueness by checking its hash
 	mu.Lock()
 	defer mu.Unlock()
-
-	// Check if the hash is already present in the map (duplicate detection)
 	if _, exists := passphraseHashes[hashStr]; exists {
 		return "", "", errors.New("duplicate passphrase detected, regenerate")
 	}
-
-	// Store the hash in the map to avoid future duplicates
 	passphraseHashes[hashStr] = struct{}{}
 
-	// Return the generated passphrase and its associated nonce
-	return passphraseStr, nonceStr, nil
+	return passphraseStr, nonceStr, nil // Return passphrase in plain text and nonce as hex
 }
 
-// NewMnemonic generates a mnemonic phrase using a given entropy level.
-// It fetches a word list from a remote URL and ensures the mnemonic's uniqueness.
+// NewMnemonic generates a mnemonic from any .txt file in the directory
 func NewMnemonic(entropy int) (string, string, error) {
-	// URL for the word list (can be replaced with a local file or another source)
-	url := "https://raw.githubusercontent.com/sphinx-core/sips/main/.github/workflows/sips0003/mnemonic.txt"
+	wordCount := (entropy + 10) / 11 // Calculates the required number of words based on entropy
 
-	// Calculate the number of words required for the mnemonic based on entropy
-	// Each word represents approximately 11 bits of entropy.
-	wordCount := (entropy + 10) / 11
-
-	// Load the word list from the specified URL
-	words, err := LoadWordsFromURL(url)
+	words, err := SelectAndLoadTxtFile(baseURL) // Loads the word list from the repository
 	if err != nil {
-		return "", "", fmt.Errorf("failed to load words: %w", err)
+		return "", "", fmt.Errorf("failed to load words: %w", err) // Returns an error if loading fails
 	}
 
-	// Generate a unique passphrase with the specified word count
-	passphrase, nonce, err := GeneratePassphrase(words, wordCount)
+	passphrase, nonce, err := GeneratePassphrase(words, wordCount) // Generates a passphrase using the word list
 	if err != nil {
-		return "", "", fmt.Errorf("failed to generate passphrase: %w", err)
+		return "", "", fmt.Errorf("failed to generate passphrase: %w", err) // Returns an error if generation fails
 	}
 
-	return passphrase, nonce, nil
+	return passphrase, nonce, nil // Returns the generated mnemonic passphrase and nonce
 }
