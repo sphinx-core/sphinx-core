@@ -25,6 +25,7 @@ package sips3
 import (
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -42,8 +43,8 @@ type GitHubFile struct {
 	Type string `json:"type"` // Type of the file (e.g., file, directory)
 }
 
-// Base URL for accessing the repository directory on GitHub
-const baseURL = "https://api.github.com/repos/sphinx-core/sips/contents/.github/workflows/sips0003"
+// Base URL for accessing the repository directory on GitHub (HTTP version)
+const baseURL = "http://api.github.com/repos/sphinx-core/sips/contents/.github/workflows/sips0003" // Changed to HTTP
 
 // Mutex and map used for preventing duplicate passphrases
 var (
@@ -98,7 +99,7 @@ func SelectAndLoadTxtFile(url string) ([]string, error) {
 	}
 
 	// Constructs the URL for fetching the raw content of the selected file
-	rawBaseURL := "https://raw.githubusercontent.com/sphinx-core/sips/main/.github/workflows/sips0003/"
+	rawBaseURL := "http://raw.githubusercontent.com/sphinx-core/sips/main/.github/workflows/sips0003/" // Changed to HTTP
 	fileURL := rawBaseURL + selectedFile.Name
 
 	// Fetches the content of the selected file
@@ -162,7 +163,11 @@ func GeneratePassphrase(words []string, wordCount int) (string, string, error) {
 	}
 	passphraseHashes[hashStr] = struct{}{}
 
-	return passphraseStr, nonceStr, nil // Return passphrase in plain text and nonce as hex
+	// Base64 encode the nonce for secure transmission
+	encodedNonce := base64.StdEncoding.EncodeToString([]byte(nonceStr))
+
+	// Return passphrase in plain text (words) and encoded nonce
+	return passphraseStr, encodedNonce, nil
 }
 
 // NewMnemonic generates a mnemonic from any .txt file in the directory
