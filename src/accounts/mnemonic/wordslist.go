@@ -44,12 +44,12 @@ type GitHubFile struct {
 }
 
 // Base URL for accessing the repository directory on GitHub (HTTP version)
-const baseURL = "http://api.github.com/repos/sphinx-core/sips/contents/.github/workflows/sips0003" // Changed to HTTP
+const baseURL = "http://api.github.com/repos/sphinx-core/sips/contents/.github/workflows/sips0003"
 
 // Mutex and map used for preventing duplicate passphrases
 var (
 	mu               sync.Mutex              // Ensures thread-safe access to shared resources
-	passphraseHashes = map[string]struct{}{} // Stores hashes of generated passphrases
+	passphraseHashes = map[string]struct{}{} // Stores hashes of generated passphrases (used database in production)
 )
 
 // FetchFileList fetches the list of files from a specified URL
