@@ -34,6 +34,22 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+
+	"golang.org/x/crypto/argon2"
+)
+
+// Argon2 parameters
+// Argon memory standard is required minimum 15MiB (15 * 1024 * 1024) memory in allocation
+const (
+	memory      = 64 * 1024 // Memory cost set to 64 KiB (64 * 1024 bytes) is for demonstration purpose
+	iterations  = 2         // Number of iterations for Argon2id set to 2
+	parallelism = 1         // Degree of parallelism set to 1
+	tagSize     = 32        // Tag size set to 256 bits (32 bytes)
+)
+
+var (
+	mu               sync.Mutex              // Ensures thread-safe access to shared resources
+	passphraseHashes = map[string]struct{}{} // Stores hashes of generated passphrases (used database in production)
 )
 
 // GitHubFile represents the structure of file information returned by GitHub's API
@@ -45,12 +61,6 @@ type GitHubFile struct {
 
 // Base URL for accessing the repository directory on GitHub (HTTP version)
 const baseURL = "http://api.github.com/repos/sphinx-core/sips/contents/.github/workflows/sips0003"
-
-// Mutex and map used for preventing duplicate passphrases
-var (
-	mu               sync.Mutex              // Ensures thread-safe access to shared resources
-	passphraseHashes = map[string]struct{}{} // Stores hashes of generated passphrases (used database in production)
-)
 
 // FetchFileList fetches the list of files from a specified URL
 func FetchFileList(url string) ([]GitHubFile, error) {
@@ -150,18 +160,25 @@ func GeneratePassphrase(words []string, wordCount int) (string, string, error) {
 	}
 	nonceStr := fmt.Sprintf("%x", nonce) // Converts the nonce to a hexadecimal string
 
-	// Combines the nonce and passphrase for hashing
+	// Hash passphrase and nonce before applying Argon2
+	// Combining passphrase and nonce as a string
 	dataToHash := nonceStr + "|" + passphraseStr
-	hash := sha256.Sum256([]byte(dataToHash)) // Generates the SHA-256 hash of the data
-	hashStr := fmt.Sprintf("%x", hash)        // Converts the hash to a hexadecimal string
+
+	// Hash the data using SHA-256
+	hashedData := sha256.Sum256([]byte(dataToHash))
+	hashedDataStr := fmt.Sprintf("%x", hashedData)
+
+	// Use Argon2 for key stretching on the hashed data
+	stretchedHash := argon2.IDKey([]byte(hashedDataStr), nonce, uint32(iterations), uint32(memory), uint8(parallelism), uint32(tagSize))
+	stretchedHashStr := fmt.Sprintf("%x", stretchedHash) // Converts the stretched hash to a hexadecimal string
 
 	// Ensure passphrase uniqueness by checking its hash
 	mu.Lock()
 	defer mu.Unlock()
-	if _, exists := passphraseHashes[hashStr]; exists {
+	if _, exists := passphraseHashes[stretchedHashStr]; exists {
 		return "", "", errors.New("duplicate passphrase detected, regenerate")
 	}
-	passphraseHashes[hashStr] = struct{}{}
+	passphraseHashes[stretchedHashStr] = struct{}{}
 
 	// Base64 encode the passphrase for secure transmission
 	encodedPassphrase := base64.StdEncoding.EncodeToString([]byte(passphraseStr))
@@ -196,5 +213,5 @@ func NewMnemonic(entropy int) (string, string, error) {
 		return "", "", fmt.Errorf("failed to generate passphrase: %w", err) // Returns an error if generation fails
 	}
 
-	return passphrase, nonce, nil // Returns the generated mnemonic passphrase and nonce
+	return passphrase, nonce, nil // Returns the generated passphrase and nonce
 }
