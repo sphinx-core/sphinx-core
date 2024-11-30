@@ -95,14 +95,16 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to serialize SK:", err) // Log and exit if serialization fails
 	}
-	fmt.Printf("Secret Key (SK): %x\n", skBytes) // Print the secret key in hexadecimal format
+	fmt.Printf("Secret Key (SK): %x\n", skBytes)                    // Print the secret key in hexadecimal format
+	fmt.Printf("Size of Secret Key (SK): %d bytes\n", len(skBytes)) // Print the size of the SK
 
 	// Serialize the public key into bytes for storage or display
 	pkBytes, err := pk.SerializePK()
 	if err != nil {
 		log.Fatal("Failed to serialize PK:", err) // Log and exit if serialization fails
 	}
-	fmt.Printf("Public Key (PK): %x\n", pkBytes) // Print the public key in hexadecimal format
+	fmt.Printf("Public Key (PK): %x\n", pkBytes)                    // Print the public key in hexadecimal format
+	fmt.Printf("Size of Public Key (PK): %d bytes\n", len(pkBytes)) // Print the size of the PK
 
 	// Generate passphrase, base32 passkey, and hashed passkey from a seed
 	passphrase, base32Passkey, hashedPasskey, err := seed.GenerateKeys()

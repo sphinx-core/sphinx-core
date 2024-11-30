@@ -172,7 +172,6 @@ func (c *CCrypter) BytesToKeySHA512AES(salt, keyData []byte, count int) ([]byte,
 	}
 
 	// After completing 'count' hash steps, the buffer contains the final hash value.
-
 	// Ensure the buffer is large enough to hold both the key and IV.
 	if len(buf) < WALLET_CRYPTO_KEY_SIZE+WALLET_CRYPTO_IV_SIZE {
 		return nil, nil, errors.New("buffer too small")
@@ -423,7 +422,7 @@ func memoryCleanse(data []byte) {
 
 // VerifyPubKey: Dummy verification for now
 func VerifyPubKey(secret, pubKey []byte) bool {
-	// Dummy implementation, assumes pubKey derived from secret
+	// Assumes pubKey derived from secret
 	return bytes.Equal(secret, pubKey)
 }
 
