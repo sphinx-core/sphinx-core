@@ -24,7 +24,6 @@ package sips3
 
 import (
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -34,6 +33,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"unicode/utf8"
 
 	"golang.org/x/crypto/argon2"
 )
@@ -156,43 +156,51 @@ func GeneratePassphrase(words []string, wordCount int) (string, string, error) {
 	// Generate a nonce
 	nonce := make([]byte, 16)
 	if _, err := rand.Read(nonce); err != nil {
-		return "", "", fmt.Errorf("failed to generate nonce: %w", err)
+		return "", "", fmt.Errorf("failed to generate nonce: %w", err) // Ensures the nonce is random for each passphrase generation
 	}
 	nonceStr := fmt.Sprintf("%x", nonce) // Converts the nonce to a hexadecimal string
 
-	// Hash passphrase and nonce before applying Argon2
-	// Combining passphrase and nonce as a string
-	dataToHash := nonceStr + "|" + passphraseStr
+	// UTF-8 encoding of the passphrase and passphrase salt
+	passphraseBytes := []byte(passphraseStr)
 
-	// Hash the data using SHA-256
-	hashedData := sha256.Sum256([]byte(dataToHash))
-	hashedDataStr := fmt.Sprintf("%x", hashedData)
+	// Ensure passphrase string is valid UTF-8
+	if !utf8.Valid(passphraseBytes) {
+		return "", "", errors.New("invalid UTF-8 encoding in passphrase")
+	}
 
-	// Use Argon2 for key stretching on the hashed data
-	stretchedHash := argon2.IDKey([]byte(hashedDataStr), nonce, uint32(iterations), uint32(memory), uint8(parallelism), uint32(tagSize))
+	salt := "mnemonic" + passphraseStr // Concatenates "mnemonic" with the passphrase to create a unique salt
+	saltBytes := []byte(salt)          // Salt as a UTF-8 encoded byte slice
+
+	// Ensure salt string is valid UTF-8
+	if !utf8.Valid(saltBytes) {
+		return "", "", errors.New("invalid UTF-8 encoding in salt")
+	}
+
+	// Use Argon2 for key stretching with passphrase as password and "mnemonic"+passphrase as salt
+	stretchedHash := argon2.IDKey(passphraseBytes, saltBytes, iterations, memory, parallelism, tagSize)
 	stretchedHashStr := fmt.Sprintf("%x", stretchedHash) // Converts the stretched hash to a hexadecimal string
 
 	// Ensure passphrase uniqueness by checking its hash
 	mu.Lock()
 	defer mu.Unlock()
 	if _, exists := passphraseHashes[stretchedHashStr]; exists {
-		return "", "", errors.New("duplicate passphrase detected, regenerate")
+		return "", "", errors.New("duplicate passphrase detected, regenerate") // Prevents identical passphrase usage
 	}
 	passphraseHashes[stretchedHashStr] = struct{}{}
 
-	// Base64 encode the passphrase for secure transmission
-	encodedPassphrase := base64.StdEncoding.EncodeToString([]byte(passphraseStr))
+	// Base64 encode the passphrase and nonce for secure transmission
+	encodedPassphrase := base64.StdEncoding.EncodeToString(passphraseBytes)
 	encodedNonce := base64.StdEncoding.EncodeToString([]byte(nonceStr))
 
 	// Decode the base64 encoded passphrase and nonce back into their original forms
 	decodedPassphrase, err := base64.StdEncoding.DecodeString(encodedPassphrase)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to decode passphrase: %w", err)
+		return "", "", fmt.Errorf("failed to decode passphrase: %w", err) // Returns error if decoding fails
 	}
 
 	decodedNonce, err := base64.StdEncoding.DecodeString(encodedNonce)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to decode nonce: %w", err)
+		return "", "", fmt.Errorf("failed to decode nonce: %w", err) // Returns error if decoding fails
 	}
 
 	// Return decoded passphrase and nonce as strings
