@@ -133,7 +133,14 @@ func SelectAndLoadTxtFile(url string) ([]string, error) {
 		}
 	}
 
-	return words, nil // Returns the list of words
+	// Base64URL encode the words
+	encodedWords := make([]string, len(words))
+	for i, word := range words {
+		encodedWords[i] = base64.URLEncoding.EncodeToString([]byte(word)) // Base64URL encoding each word
+	}
+
+	// Returns the encoded words
+	return encodedWords, nil // Returns the list of encoded words
 }
 
 // GeneratePassphrase creates a secure passphrase using a given word list
@@ -153,7 +160,16 @@ func GeneratePassphrase(words []string, wordCount int) (string, string, error) {
 			return "", "", fmt.Errorf("failed to generate random index: %w", err)
 		}
 		// Append the selected word to the passphrase slice
-		passphrase = append(passphrase, words[randIndex.Int64()])
+		encodedWord := words[randIndex.Int64()]
+
+		// Decode the Base64URL encoded word into its original form
+		decodedWord, err := base64.URLEncoding.DecodeString(encodedWord)
+		if err != nil {
+			// Return an error if decoding fails
+			return "", "", fmt.Errorf("failed to decode word: %w", err)
+		}
+		// Convert the decoded word to a string and append it to the passphrase
+		passphrase = append(passphrase, string(decodedWord))
 	}
 
 	// Join the words in the passphrase slice into a single string separated by spaces
