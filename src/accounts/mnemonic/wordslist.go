@@ -102,10 +102,12 @@ func SelectAndLoadTxtFile(url string) ([]string, error) {
 	}
 
 	// Selects a random .txt file from the list
-	selectedFile := txtFiles[0] // Defaults to the first file
-	if len(txtFiles) > 1 {      // If more than one .txt file exists
+	var selectedFile GitHubFile
+	if len(txtFiles) > 0 { // Check if there are any files
 		randIndex, _ := rand.Int(rand.Reader, big.NewInt(int64(len(txtFiles)))) // Generates a random index
 		selectedFile = txtFiles[randIndex.Int64()]                              // Selects the file at the random index
+	} else {
+		return nil, errors.New("no .txt files found") // Error if no files are found
 	}
 
 	// Constructs the URL for fetching the raw content of the selected file
