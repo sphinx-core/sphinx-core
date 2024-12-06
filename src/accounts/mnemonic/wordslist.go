@@ -138,72 +138,89 @@ func SelectAndLoadTxtFile(url string) ([]string, error) {
 
 // GeneratePassphrase creates a secure passphrase using a given word list
 func GeneratePassphrase(words []string, wordCount int) (string, string, error) {
-	if len(words) == 0 { // Checks if the word list is empty
-		return "", "", errors.New("word list is empty") // Returns an error
+	// Check if the word list is empty; if so, return an error
+	if len(words) == 0 {
+		return "", "", errors.New("word list is empty")
 	}
 
-	var passphrase []string          // Stores the generated passphrase
-	for i := 0; i < wordCount; i++ { // Loops to generate the required number of words
-		randIndex, err := rand.Int(rand.Reader, big.NewInt(int64(len(words)))) // Generates a random index
-		if err != nil {                                                        // Checks if random index generation fails
-			return "", "", fmt.Errorf("failed to generate random index: %w", err) // Returns an error
+	var passphrase []string
+	// Loop to generate a passphrase by selecting random words from the word list
+	for i := 0; i < wordCount; i++ {
+		// Generate a random index to pick a word from the list
+		randIndex, err := rand.Int(rand.Reader, big.NewInt(int64(len(words))))
+		if err != nil {
+			// Return an error if random index generation fails
+			return "", "", fmt.Errorf("failed to generate random index: %w", err)
 		}
-		passphrase = append(passphrase, words[randIndex.Int64()]) // Adds the selected word to the passphrase
+		// Append the selected word to the passphrase slice
+		passphrase = append(passphrase, words[randIndex.Int64()])
 	}
 
-	passphraseStr := strings.Join(passphrase, " ") // Joins the words to form the passphrase string
+	// Join the words in the passphrase slice into a single string separated by spaces
+	passphraseStr := strings.Join(passphrase, " ")
 
-	// Generate a nonce
+	// Create a slice to hold the 16-byte nonce
 	nonce := make([]byte, 16)
+	// Generate random bytes to populate the nonce
 	if _, err := rand.Read(nonce); err != nil {
-		return "", "", fmt.Errorf("failed to generate nonce: %w", err) // Ensures the nonce is random for each passphrase generation
+		// Return an error if nonce generation fails
+		return "", "", fmt.Errorf("failed to generate nonce: %w", err)
 	}
-	nonceStr := fmt.Sprintf("%x", nonce) // Converts the nonce to a hexadecimal string
 
-	// UTF-8 encoding of the passphrase and passphrase salt
+	// Convert the passphrase string to a byte slice for encoding
 	passphraseBytes := []byte(passphraseStr)
-
-	// Ensure passphrase string is valid UTF-8
+	// Check if the byte slice is valid UTF-8
 	if !utf8.Valid(passphraseBytes) {
+		// Return an error if the passphrase contains invalid UTF-8 characters
 		return "", "", errors.New("invalid UTF-8 encoding in passphrase")
 	}
 
-	salt := "mnemonic" + passphraseStr // Concatenates "mnemonic" with the passphrase to create a unique salt
-	saltBytes := []byte(salt)          // Salt as a UTF-8 encoded byte slice
-
-	// Ensure salt string is valid UTF-8
+	// Create a salt by concatenating "mnemonic" with the passphrase string
+	salt := "mnemonic" + passphraseStr
+	// Convert the salt string to a byte slice for encoding
+	saltBytes := []byte(salt)
+	// Check if the salt byte slice is valid UTF-8
 	if !utf8.Valid(saltBytes) {
+		// Return an error if the salt contains invalid UTF-8 characters
 		return "", "", errors.New("invalid UTF-8 encoding in salt")
 	}
 
-	// Use Argon2 for key stretching with passphrase as password and "mnemonic"+passphrase as salt
+	// Use Argon2 IDKey to stretch the passphrase and salt into a fixed-length hash
 	stretchedHash := argon2.IDKey(passphraseBytes, saltBytes, iterations, memory, parallelism, tagSize)
-	stretchedHashStr := fmt.Sprintf("%x", stretchedHash) // Converts the stretched hash to a hexadecimal string
+	// Convert the stretched hash to a hexadecimal string representation
+	stretchedHashStr := fmt.Sprintf("%x", stretchedHash)
 
-	// Ensure passphrase uniqueness by checking its hash
+	// Lock the mutex to ensure thread safety when accessing shared data
 	mu.Lock()
 	defer mu.Unlock()
+	// Check if the generated hash already exists in the hash map
 	if _, exists := passphraseHashes[stretchedHashStr]; exists {
-		return "", "", errors.New("duplicate passphrase detected, regenerate") // Prevents identical passphrase usage
+		// Return an error if a duplicate passphrase is detected
+		return "", "", errors.New("duplicate passphrase detected, regenerate")
 	}
+	// Add the new hash to the hash map
 	passphraseHashes[stretchedHashStr] = struct{}{}
 
-	// Base64 encode the passphrase and nonce for secure transmission
-	encodedPassphrase := base64.StdEncoding.EncodeToString(passphraseBytes)
-	encodedNonce := base64.StdEncoding.EncodeToString([]byte(nonceStr))
+	// Encode the passphrase bytes using Base64 URL encoding
+	encodedPassphrase := base64.URLEncoding.EncodeToString(passphraseBytes)
+	// Encode the nonce bytes using Base64 URL encoding
+	encodedNonce := base64.URLEncoding.EncodeToString(nonce)
 
-	// Decode the base64 encoded passphrase and nonce back into their original forms
-	decodedPassphrase, err := base64.StdEncoding.DecodeString(encodedPassphrase)
+	// Decode the Base64-encoded passphrase back into a byte slice
+	decodedPassphrase, err := base64.URLEncoding.DecodeString(encodedPassphrase)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to decode passphrase: %w", err) // Returns error if decoding fails
+		// Return an error if passphrase decoding fails
+		return "", "", fmt.Errorf("failed to decode passphrase: %w", err)
 	}
 
-	decodedNonce, err := base64.StdEncoding.DecodeString(encodedNonce)
+	// Decode the Base64-encoded nonce back into a byte slice
+	decodedNonce, err := base64.URLEncoding.DecodeString(encodedNonce)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to decode nonce: %w", err) // Returns error if decoding fails
+		// Return an error if nonce decoding fails
+		return "", "", fmt.Errorf("failed to decode nonce: %w", err)
 	}
 
-	// Return decoded passphrase and nonce as strings
+	// Convert the decoded passphrase and nonce byte slices to strings and return them
 	return string(decodedPassphrase), string(decodedNonce), nil
 }
 
