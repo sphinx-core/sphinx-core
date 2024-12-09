@@ -159,7 +159,7 @@ const (
 )
 
 // Generate deterministic salt based on input data.
-func generateDeterministicSalt(data []byte) []byte {
+func generateSalt(data []byte) []byte {
 	// Use a hash of the data as the salt to ensure determinism
 	hash := sha256.Sum256(data)
 	return hash[:saltSize] // Return the first 16 bytes as salt
@@ -167,7 +167,7 @@ func generateDeterministicSalt(data []byte) []byte {
 
 // NewSphinxHash creates a new SphinxHash with a specific bit size for the hash.
 func NewSphinxHash(bitSize int, data []byte) *SphinxHash {
-	salt := generateDeterministicSalt(data) // Use deterministic salt based on input data
+	salt := generateSalt(data) // Use deterministic salt based on input data
 	return &SphinxHash{
 		bitSize:      bitSize,
 		salt:         salt,
