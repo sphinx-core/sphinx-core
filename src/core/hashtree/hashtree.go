@@ -30,8 +30,8 @@ import (
 	"syscall"
 
 	"github.com/holiman/uint256"
+	spxhash "github.com/sphinx-core/sphinx-core/src/core/spxhash/hash"
 	"github.com/syndtr/goleveldb/leveldb"
-	"golang.org/x/crypto/sha3"
 )
 
 // SIPS-0002 https://github.com/sphinx-core/sips/wiki/SIPS-0002
@@ -67,14 +67,19 @@ func (tree *HashTree) Build() error {
 	return nil
 }
 
-// Compute the hash of a given data slice using SHAKE-256 and return a uint256 value.
+// Compute the hash of a given data slice using SphinxHash (instead of SHAKE-256)
+// and return a uint256 value.
 func computeUint256(data []byte) *uint256.Int {
-	hasher := sha3.NewShake256() // Create a new SHAKE-256 hasher
-	hasher.Write(data)           // Write the data to the hasher
-	hash := make([]byte, 32)     // Create a byte slice to hold the hash (256 bits)
-	hasher.Read(hash)            // Read the hash into the byte slice
+	// Initialize SphinxHash with 256-bit output and empty parameter slice (if needed)
+	hasher := spxhash.NewSphinxHash(256, []byte{})
 
-	// Convert the byte slice to a uint256
+	// Write data to the hasher
+	hasher.Write(data)
+
+	// Hash the data and get the result
+	hash := hasher.Sum(nil)
+
+	// Convert the resulting hash (which should be 32 bytes for 256-bit) to uint256
 	return uint256.NewInt(0).SetBytes(hash)
 }
 
