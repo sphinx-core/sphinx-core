@@ -23,7 +23,6 @@
 package spxhash
 
 import (
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/binary"
 	"io"
@@ -159,24 +158,22 @@ const (
 	DefaultCacheSize = 10        // Default cache size for SphinxHash
 )
 
+// Generate deterministic salt based on input data.
+func generateDeterministicSalt(data []byte) []byte {
+	// Use a hash of the data as the salt to ensure determinism
+	hash := sha256.Sum256(data)
+	return hash[:saltSize] // Return the first 16 bytes as salt
+}
+
 // NewSphinxHash creates a new SphinxHash with a specific bit size for the hash.
-func NewSphinxHash(bitSize int) *SphinxHash {
+func NewSphinxHash(bitSize int, data []byte) *SphinxHash {
+	salt := generateDeterministicSalt(data) // Use deterministic salt based on input data
 	return &SphinxHash{
 		bitSize:      bitSize,
-		salt:         generateRandomSalt(),
+		salt:         salt,
 		cache:        NewLRUCache(DefaultCacheSize),
 		maxCacheSize: DefaultCacheSize,
 	}
-}
-
-// generateRandomSalt creates a new random salt.
-func generateRandomSalt() []byte {
-	salt := make([]byte, saltSize)
-	_, err := rand.Read(salt)
-	if err != nil {
-		panic("failed to generate random salt") // Panic if random salt generation fails
-	}
-	return salt
 }
 
 // GetHash retrieves or calculates the hash of the given data.
@@ -186,8 +183,10 @@ func (s *SphinxHash) GetHash(data []byte) []byte {
 		return cachedValue // Return cached value if found
 	}
 
-	hash := s.hashData(data)   // Calculate the hash if not found in cache
-	s.cache.Put(hashKey, hash) // Store the calculated hash in the cache
+	// Create a new SphinxHash with the input data to get the deterministic salt
+	sphinx := NewSphinxHash(s.bitSize, data) // Pass data to generate deterministic salt
+	hash := sphinx.hashData(data)            // Calculate the hash using the new deterministic salt
+	s.cache.Put(hashKey, hash)               // Store the calculated hash in the cache
 
 	return hash // Return the calculated hash
 }
