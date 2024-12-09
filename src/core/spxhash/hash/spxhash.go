@@ -275,26 +275,41 @@ func (s *SphinxHash) sphinxHash(hash1, hash2 []byte, primeConstant uint64) []byt
 	}
 
 	// Step 1: Hash the input hashes to protect against pre-images.
-	// Chaining: H∘(x) = H0(H1(x))
+	// Chaining: H∘(x) = H0(H1(x)) means that hash1 and hash2 are independently hashed first.
 	// Hashing hash1 first
-	chainHash1 := sha256.Sum256(hash1)
+	chainHash1 := sha256.Sum256(hash1) // The first hash is generated from hash1.
 
 	// Hashing hash2 first
-	chainHash2 := sha256.Sum256(hash2)
+	chainHash2 := sha256.Sum256(hash2) // The second hash is generated from hash2.
 
-	// Step 2: Initialize the output slice for the SphinxHash, with the combined length of the chained hashes.
-	sphinxHash := make([]byte, len(chainHash1)) // Using the length of chainHash1 for initialization
+	// Step 2: Combine the two hashed inputs (chainHash1 and chainHash2) into a single slice.
+	// This forms the "combined" hash, which is a concatenation of the two individual hashes.
+	// The two hashes are joined to make one long hash value for further processing.
+	// (H|(x) = H0(x)|H1(x))
+	combinedHash := append(chainHash1[:], chainHash2[:]...) // Combine the two chained hashes into one slice.
 
-	// Step 3: Structured combination using a modified approach.
-	// Apply the improved combining method: hash(a)*3 + hash(b).
+	// Step 3: Hash the combined hash to generate the final "chained" hash.
+	// The combined hash is further hashed to create a single resultant hash value.
+	// This step provides an additional layer of security by chaining the two previous hashes.
+	chainHash := sha256.Sum256(combinedHash) // This is the final hash after combining the two inputs.
+
+	// Step 4: Initialize the output slice for the SphinxHash, using the result of the chained hash.
+	// We use the chained hash (chainHash) to initialize the sphinxHash.
+	// This means the final result starts with the combined and rehashed value of chainHash1 and chainHash2.
+	sphinxHash := chainHash // Using the result of the chained hash to initialize the final hash.
+
+	// Step 5: Structured combination using a modified approach.
+	// This loop applies a transformation to the hash by combining chainHash1 and chainHash2 with a weighted factor.
+	// The result of chainHash1 is multiplied by 3, and then chainHash2 is added to it.
+	// This step mixes the two original hash values together in a structured way.
 	for i := range chainHash1 {
-		sphinxHash[i] = chainHash1[i]*3 + chainHash2[i]
+		sphinxHash[i] = chainHash1[i]*3 + chainHash2[i] // Modify the sphinxHash using the weighted combination of chainHash1 and chainHash2.
 	}
 
-	// Step 4: Further manipulate the resulting hash using the prime constant for additional mixing.
-	// This step enhances the entropy and security of the resulting hash.
-	// The manipulation is done in chunks of 8 bytes (uint64) for efficiency,
-	// as processing 64-bit values is typically faster on modern architectures.
+	// Step 6: Further manipulate the resulting hash using the prime constant for additional mixing.
+	// The prime constant is added to each 64-bit segment of the hash.
+	// This additional step provides extra entropy, making the hash more unpredictable and collision-resistant.
+	// The manipulation is done in chunks of 8 bytes (uint64) for efficiency, as processing 64-bit values is faster.
 	for i := 0; i < len(sphinxHash)/8; i++ {
 		offset := i * 8 // Calculate the offset for each 8-byte chunk
 
@@ -317,6 +332,6 @@ func (s *SphinxHash) sphinxHash(hash1, hash2 []byte, primeConstant uint64) []byt
 		}
 	}
 
-	// Return the final combined SphinxHash, which now contains the result of the structured combination.
-	return sphinxHash // Output the computed SphinxHash
+	// Step 7: Return the final combined SphinxHash, which now contains the result of all the hashing and mixing operations.
+	return sphinxHash[:] // Output the computed SphinxHash, which is the final result.
 }
