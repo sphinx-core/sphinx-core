@@ -155,7 +155,7 @@ const (
 	iterations       = 2         // Number of iterations for Argon2id set to 2
 	parallelism      = 1         // Degree of parallelism set to 1
 	tagSize          = 32        // Tag size set to 256 bits (32 bytes)
-	DefaultCacheSize = 10        // Default cache size for SphinxHash
+	DefaultCacheSize = 100       // Default cache size for SphinxHash
 )
 
 // Generate deterministic salt based on input data.
