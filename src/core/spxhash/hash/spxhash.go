@@ -291,7 +291,7 @@ func (s *SphinxHash) sphinxHash(hash1, hash2 []byte, primeConstant uint64) []byt
 		sphinxHash[i] = chainHash1[i]*3 + chainHash2[i]
 	}
 
-	// Step 4: Further manipulate the resulting hash using the prime constant for additional mixing.
+	// Step 4: concatenation (H|(x) = H0(x)|H1(x)) Further manipulate the resulting hash using the prime constant for additional mixing.
 	// This step enhances the entropy and security of the resulting hash.
 	// The manipulation is done in chunks of 8 bytes (uint64) for efficiency,
 	// as processing 64-bit values is typically faster on modern architectures.
