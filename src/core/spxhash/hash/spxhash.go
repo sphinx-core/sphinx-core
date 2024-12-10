@@ -274,7 +274,7 @@ func (s *SphinxHash) hashData(data []byte) []byte {
 	// The nonce will ensure that the same input data does not result in the same hash every time.
 	nonce := generateNonce(data) // Pass data to generateNonce instead of calling it with no arguments
 
-	// Step 3: Combine both the hashes (SHA-256 and SHAKE256) with the nonce using the custom SphinxHash.
+	// Step 3: Combine both the hashes (SHA-256 and SHAKE256) with the nonce using SphinxHash.
 	return s.sphinxHash(sha2Hash, shakeHash, prime32, nonce) // Pass the hashes and prime constant along with the nonce to SphinxHash for combination.
 }
 
