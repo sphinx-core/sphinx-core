@@ -165,13 +165,6 @@ func generateSalt(data []byte) []byte {
 	return hash[:saltSize] // Return the first 16 bytes as salt
 }
 
-// Generates a deterministic nonce based on input data.
-func generateNonce(data []byte) []byte {
-	// Use a hash of the input data to ensure determinism
-	hash := sha256.Sum256(data)
-	return hash[:nonceSize] // Return the first 16 bytes as the nonce
-}
-
 // NewSphinxHash creates a new SphinxHash with a specific bit size for the hash.
 func NewSphinxHash(bitSize int, data []byte) *SphinxHash {
 	salt := generateSalt(data) // Use deterministic salt based on input data
@@ -270,17 +263,13 @@ func (s *SphinxHash) hashData(data []byte) []byte {
 	shakeHash := make([]byte, 32) // Prepare a slice to store 256-bit (32-byte) hash.
 	shake.Read(shakeHash)         // Read the resulting hash into shakeHash.
 
-	// Generate a unique nonce to prevent replay attacks or brute-force attacks.
-	// The nonce will ensure that the same input data does not result in the same hash every time.
-	nonce := generateNonce(data) // Pass data to generateNonce instead of calling it with no arguments
-
-	// Step 3: Combine both the hashes (SHA-256 and SHAKE256) with the nonce using SphinxHash.
-	return s.sphinxHash(sha2Hash, shakeHash, prime32, nonce) // Pass the hashes and prime constant along with the nonce to SphinxHash for combination.
+	// Step 3: Combine both the hashes (SHA-256 and SHAKE256) using SphinxHash.
+	return s.sphinxHash(sha2Hash, shakeHash, prime32) // Pass the hashes and prime constant to SphinxHash for combination.
 }
 
 // sphinxHash combines two byte slices (hash1 and hash2) using a prime constant and applies structured combinations.
 // It utilizes chaining (H∘(x) = H0(H1(x))) and concatenation (H|(x) = H0(x)|H1(x)) of hash functions to enhance pre-image and collision resistance.
-func (s *SphinxHash) sphinxHash(hash1, hash2 []byte, primeConstant uint64, nonce []byte) []byte {
+func (s *SphinxHash) sphinxHash(hash1, hash2 []byte, primeConstant uint64) []byte {
 
 	// Ensure both input hashes have the same length for consistent processing.
 	// This check ensures that both input hashes are compatible for further processing in the algorithm.
@@ -298,19 +287,15 @@ func (s *SphinxHash) sphinxHash(hash1, hash2 []byte, primeConstant uint64, nonce
 	// This concatenates (H|(x) = H0(x)|H1(x)) the results of the two SHA-256 hashes, which will be used for further processing.
 	combinedHash := append(chainHash1[:], chainHash2[:]...) // Concatenate the two chained hashes.
 
-	// Step 3: Include the nonce to ensure uniqueness of the hash.
-	// The nonce is added to prevent replay attacks and ensure that even if the same input data is hashed, the result is different.
-	combinedHash = append(combinedHash, nonce...) // Append the nonce to the combined hash.
-
-	// Step 4: Hash the combined result to generate a final chained hash.
+	// Step 3: Hash the combined result to generate a final chained hash.
 	// By applying SHA-256 again on the combined hashes, we ensure that the final result has better security.
 	chainHash := sha256.Sum256(combinedHash) // Perform another SHA-256 hash to form the final combined result.
 
-	// Step 5: Initialize the output hash (sphinxHash) using the chained result.
+	// Step 4: Initialize the output hash (sphinxHash) using the chained result.
 	// The combined hash from the previous step becomes the starting point for further transformations.
 	sphinxHash := chainHash[:] // Convert the [32]byte result to a []byte for further manipulation.
 
-	// Step 6: Apply iterative rounds to increase diffusion and avalanche effects.
+	// Step 5: Apply iterative rounds to increase diffusion and avalanche effects.
 	rounds := 100 // Set the number of rounds for iterative hashing to enhance diffusion.
 	// The number of rounds is a critical factor for making sure that the hash undergoes substantial transformations
 	// through multiple rounds of mixing and re-hashing. The higher the number of rounds, the harder it becomes
@@ -352,7 +337,7 @@ func (s *SphinxHash) sphinxHash(hash1, hash2 []byte, primeConstant uint64, nonce
 		sphinxHash = chainHash[:]             // Update sphinxHash with the new hash value after each round.
 	}
 
-	// Step 7: Apply further mixing by adding the prime constant to each 64-bit segment of the hash.
+	// Step 6: Apply further mixing by adding the prime constant to each 64-bit segment of the hash.
 	// This step ensures that the final result is heavily influenced by the prime constant to improve entropy and security.
 	for i := 0; i < len(sphinxHash)/8; i++ {
 		// Calculate the offset for each 8-byte (64-bit) segment.
@@ -381,7 +366,7 @@ func (s *SphinxHash) sphinxHash(hash1, hash2 []byte, primeConstant uint64, nonce
 		}
 	}
 
-	// Step 8: Return the final SphinxHash after all the hashing and mixing operations.
+	// Step 7: Return the final SphinxHash after all the hashing and mixing operations.
 	// The final hash, after iterative rounds and mixing with the prime constant, is returned as the output.
 	return sphinxHash // Output the final result after all transformations (already a []byte).
 }

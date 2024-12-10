@@ -33,7 +33,7 @@ func main() {
 	// Define three different messages to hash
 	messages := [][]byte{
 		[]byte("Hello, SphinxHash!"),
-		[]byte("Welcome to cryptography."),
+		[]byte("Hello, SphinxHash!"),
 		[]byte("Hash functions are fascinating."),
 	}
 
