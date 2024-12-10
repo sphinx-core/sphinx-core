@@ -145,10 +145,9 @@ type SphinxHash struct {
 
 // Define prime constants for hash calculations.
 const (
-	prime32   = 0x9e3779b9         // Example prime constant for 32-bit hash
-	prime64   = 0x9e3779b97f4a7c15 // Example prime constant for 64-bit hash
-	saltSize  = 16                 // Size of salt in bytes (128 bits = 16 bytes)
-	nonceSize = 16                 // Size of nonce in bytes (128 bits = 16 bytes)
+	prime32  = 0x9e3779b9         // Example prime constant for 32-bit hash
+	prime64  = 0x9e3779b97f4a7c15 // Example prime constant for 64-bit hash
+	saltSize = 16                 // Size of salt in bytes (128 bits = 16 bytes)
 
 	// Argon2 parameters
 	memory           = 64 * 1024 // Memory cost set to 64 KiB (64 * 1024 bytes) is for demonstration purpose
