@@ -165,7 +165,7 @@ func generateSalt(data []byte) []byte {
 	return hash[:saltSize] // Return the first 16 bytes as salt
 }
 
-// generateNonce generates a deterministic nonce based on input data.
+// Generates a deterministic nonce based on input data.
 func generateNonce(data []byte) []byte {
 	// Use a hash of the input data to ensure determinism
 	hash := sha256.Sum256(data)
