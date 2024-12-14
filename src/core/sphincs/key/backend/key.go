@@ -41,7 +41,7 @@ type KeyManager struct {
 // - KeyManager instance configured with specified SPHINCS+ parameters, or an error if initialization fails.
 func NewKeyManager() (*KeyManager, error) {
 	// Configure SPHINCS+ parameters (SHAKE256-192f-robust) and return a KeyManager.
-	params := parameters.MakeSphincsPlusSHAKE256192fSimple(false)
+	params := parameters.MakeSphincsPlusSHAKE256192fRobust(false)
 	if params == nil {
 		return nil, errors.New("failed to initialize parameters")
 	}
